@@ -1,9 +1,14 @@
 # config.py
+import socket
+# אם שם המחשב הוא השם של המחשב בבית (Hod2301-07), תהיה בסימולציה.
+# בכל מחשב אחר (כמו המחשב שליד הבקר), תעבוד במצב אמת.
+COMPUTER_NAME = socket.gethostname()
+SIMULATION_MODE = (COMPUTER_NAME == "Hod2301-07") 
+
+# הערה: אם למחשב ליד הבקר יש שם אחר, הקוד יזהה שזה לא "Hod2301-07" 
+# ויעבור אוטומטית ל-SIMULATION_MODE = False.
 
 # --- הגדרות חיבור לבקר ---
-# שנה ל-False כשאתה מעלה את הקוד למחשב שליד הבקר
-SIMULATION_MODE = True
-
 REMOTE_IP = "192.168.1.234"
 CONTROLLER_USERNAME = "Eli"
 CONTROLLER_PASSWORD = "66911"
