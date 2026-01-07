@@ -1,0 +1,47 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="status-tabs-container">
+    <button class="tab-btn {% if active_tab == 'boys' %}active{% endif %}" onclick="handleButtonClick('TAB_BOYS', '/status_boys.html')">בנים</button>
+    <button class="tab-btn {% if active_tab == 'girls' %}active{% endif %}\" onclick="handleButtonClick('TAB_GIRLS', '/status_girls.html')">בנות</button>
+    <button class="tab-btn {% if active_tab == 'public' %}active{% endif %}\" onclick="handleButtonClick('TAB_PUBLIC', '/status_public.html')">ציבורי</button>
+    <button class="tab-btn {% if active_tab == 'shabbat' %}active{% endif %}\" onclick="handleButtonClick('TAB_SHABBAT', '/status_shabbat.html')">שבת</button>
+</div>
+
+<div id="context-holder" style="display:none;">{% block context_name %}{% endblock %}</div>
+
+{% block status_content %}{% endblock %}
+
+<script>
+    const currentCtx = document.getElementById('context-holder').innerText.trim();
+
+    async function handleButtonClick(tabAction, targetUrl) {
+        const fullAction = currentCtx + "/" + tabAction;
+        try {
+            await fetch('/control?action=' + encodeURIComponent(fullAction));
+            window.location.href = targetUrl;
+        } catch (e) { window.location.href = targetUrl; }
+    }
+
+    // פונקציית החזרה הקריטית שחיפשת
+    async function syncAndNavigate(targetUrl) {
+        const footer = document.getElementById('status-message');
+        if (footer) footer.innerText = "חוזר לדף הבית...";
+        
+        // שליחת פקודת BACK מותאמת להקשר הנוכחי (למשל BACK_STATUS_BOYS)
+        const backCmd = "BACK_" + currentCtx;
+        try {
+            await fetch('/control?action=' + encodeURIComponent(backCmd));
+            setTimeout(() => { window.location.href = targetUrl; }, 600);
+        } catch (error) {
+            window.location.href = targetUrl;
+        }
+    }
+</script>
+
+<style>
+    .status-tabs-container { display: flex; justify-content: space-around; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #ddd; }
+    .tab-btn { padding: 10px 20px; border: none; background: #eee; cursor: pointer; font-weight: bold; border-radius: 5px; }
+    .tab-btn.active { background: #007bff; color: white; }
+</style>
+{% endblock %}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>כניסה למערכת בקרה</title>
+
+    <style>
+
+        body { font-family: sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+
+        .login-card { background: #2d2d2d; padding: 30px; border-radius: 12px; width: 300px; text-align: center; border: 1px solid #444; }
+
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
+
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
+        .error { color: #ff4d4d; font-size: 14px; margin-bottom: 10px; }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="login-card">
+
+        <h2>מערכת שליטה</h2>
+
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+        <form method="post">
+
+            <input type="text" name="username" placeholder="שם משתמש" required>
+
+            <input type="password" name="password" placeholder="סיסמה" required>
+
+            <button type="submit">התחברות</button>
+
+        </form>
+
+    </div>
+
+</body>
+
+</html>

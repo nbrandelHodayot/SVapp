@@ -1,0 +1,104 @@
+{% extends "base_layout.html" %}
+
+{% block title %}בקרת אזורים{% endblock %}
+{% block page_name %}בקרת אזורים{% endblock %}
+
+{# חזרה לדף הבית #}
+{% block back_url %}/{% endblock %}
+{% block back_action %}NAV_CONTROL{% endblock %}
+
+{% block content %}
+<div class="control-grid-layout">
+    <div class="control-column">
+        <h3 class="column-title">אזור בנים</h3>
+        <button class="action-button" onclick="navigateTo('/control_boys_split.html','BOYS_SPLIT')">חלוקה למבנים</button>
+        <button class="action-button" onclick="navigateTo('/control_boys_general.html','BOYS_GENERAL')">הפעלה כללית</button>
+        <button class="action-button" onclick="navigateTo('/control_boys_shabbat.html','BOYS_SHABBAT')">שעוני שבת</button>
+    </div>
+
+    <div class="control-column">
+        <h3 class="column-title">אזור בנות</h3>
+        <button class="action-button" onclick="navigateTo('/control_girls_split.html', 'GIRLS_SPLIT')">חלוקה למבנים</button>
+        <button class="action-button" onclick="navigateTo('/control_girls_general.html', 'GIRLS_GENERAL')">הפעלה כללית</button>
+        <button class="action-button" onclick="navigateTo('/control_girls_shabbat.html','GIRLS_SHABBAT')">שעוני שבת</button>
+    </div>
+
+    <div class="control-column">
+        <h3 class="column-title">אזור ציבורי</h3>
+        <button class="action-button" onclick="navigateTo('/control_public_split.html','PUBLIC_SPLIT')">חלוקה למבנים</button>
+        <button class="action-button" onclick="navigateTo('/control_public_shabbat.html','PUBLIC_SHABBAT')">שעוני שבת</button>
+        <button class="action-button" onclick="navigateTo('/control_public_d1_cancel.html','PUBLIC_D1_CANCEL')">ביטול חיישן D1</button>
+    </div>
+
+    <div class="control-column">
+        <h3 class="column-title">מועדונים</h3>
+        <button class="action-button" onclick="navigateTo('/control_clubs_boys.html','CLUBS_BOYS')">שעוני שבת בנים</button>
+        <button class="action-button" onclick="navigateTo('/control_clubs_girls.html','CLUBS_GIRLS')">שעוני שבת בנות</button>
+        <button class="action-button" onclick="navigateTo('/control_clubs_public.html','CLUBS_PUBLIC_LIB')">שעוני שבת ציבורי</button>
+    </div>
+</div>
+
+<style>
+    /* קונטיינר ראשי בשיטת Grid */
+    .control-grid-layout {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 עמודות בדסקטופ */
+        gap: 15px;
+        padding: 15px;
+        direction: rtl;
+    }
+
+    /* עיצוב כל עמודה (תא) */
+    .control-column {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .column-title {
+        color: #ffcc00;
+        font-size: 1.1rem;
+        text-align: center;
+        margin: 0 0 10px 0;
+        border-bottom: 1px solid #444;
+        padding-bottom: 8px;
+    }
+
+    /* עיצוב כפתורי הפעולה */
+    .action-button {
+        background: #333;
+        color: white;
+        border: 1px solid #444;
+        padding: 12px 8px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+
+    .action-button:hover {
+        background: #444;
+        border-color: #ffcc00;
+    }
+
+    .action-button:active {
+        background: #555;
+        transform: scale(0.98);
+    }
+
+    /* מובייל וטאבלט - מעבר ל-2 עמודות (2x2) */
+    @media (max-width: 768px) {
+        .control-grid-layout {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 10px;
+        }
+    }
+</style>
+{% endblock %}

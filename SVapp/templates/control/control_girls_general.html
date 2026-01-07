@@ -1,0 +1,239 @@
+{% extends "control_base.html" %}
+
+{% block title %}אזור בנות - הפעלה כללית{% endblock %}
+{% block page_name %}אזור בנות - הפעלה כללית של מערכות{% endblock %}
+
+{# חזרה לתפריט הניווט הראשי #}
+{% block back_url %}/nav_control.html{% endblock %}
+{% block back_action %}GIRLS_GENERAL{% endblock %}
+
+{# --- הגדרת המקרו לנורית אינדיקציה --- #}
+{% macro gen_indicator(label, id) %}
+<div class="indicator-cell">
+    <div class="led-wrapper">
+        <div class="status-indicator small unknown" id="stat_{{ id }}"></div>
+    </div>
+    <span class="indicator-label">{{ label }}</span>
+</div>
+{% endmacro %}
+
+{% block control_content %}
+<div class="girls-general-wrapper">
+    <div class="main-grid">
+        
+        {# --- עמודה 1: מיזוג אוויר --- #}
+        <div class="gen-box">
+            <h4 class="box-title">
+                <i class="fas fa-snowflake"></i> מיזוג אוויר
+            </h4>
+            <div class="btns-row">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('AC_ON', 'GIRLS_GENERAL')">הכל ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('AC_OFF', 'GIRLS_GENERAL')">הכל OFF</button>
+            </div>
+            
+            <div class="indicators-container">
+                <div class="group-header">בתים 7, 8, 10</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("7-א", "G7A_AC") }} 
+                    {{ gen_indicator("7-ב", "G7B_AC") }} 
+                    {{ gen_indicator("8", "G8_AC") }} 
+                    {{ gen_indicator("10-א", "G10A_AC") }} 
+                    {{ gen_indicator("10-ב", "G10B_AC") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">בית 12 (א, ב, ג)</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("א", "G12A_AC") }} 
+                    {{ gen_indicator("ב", "G12B_AC") }} 
+                    {{ gen_indicator("ג", "G12C_AC") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">בית 13 (א, ב, ג)</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("א", "G13A_AC") }} 
+                    {{ gen_indicator("ב", "G13B_AC") }} 
+                    {{ gen_indicator("ג", "G13C_AC") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">קרוואנים</div>
+                <div class="indicator-row caravan-grid">
+                    {% for i in range(20, 27) %}
+                        {{ gen_indicator(i, "GC" ~ i ~ "_AC") }}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# --- עמודה 2: תאורת חדרים --- #}
+        <div class="gen-box">
+            <h4 class="box-title">
+                <i class="fas fa-lightbulb"></i> תאורת חדרים
+            </h4>
+            <div class="btns-row">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('ROOMS_ON', 'GIRLS_GENERAL')">הכל ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('ROOMS_OFF', 'GIRLS_GENERAL')">הכל OFF</button>
+            </div>
+            <div class="indicators-container">
+                <div class="group-header">בתים 7, 8, 10</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("בית 7", "G7_R") }} 
+                    {{ gen_indicator("בית 8", "G8_R") }} 
+                    {{ gen_indicator("בית 10", "G10_R") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">בית 12 (א, ב, ג)</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("א", "G12A_R") }} 
+                    {{ gen_indicator("ב", "G12B_R") }} 
+                    {{ gen_indicator("ג", "G12C_R") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">בית 13 (א, ב, ג)</div>
+                <div class="indicator-row">
+                    {{ gen_indicator("א", "G13A_R") }} 
+                    {{ gen_indicator("ב", "G13B_R") }} 
+                    {{ gen_indicator("ג", "G13C_R") }}
+                </div>
+                
+                <div class="row-separator"></div>
+                <div class="group-header">קרוואנים</div>
+                <div class="indicator-row caravan-grid">
+                    {% for i in range(20, 27) %}
+                        {{ gen_indicator(i, "GC" ~ i ~ "_R") }}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# --- עמודה 3: תאורת שירותים + חימום מים --- #}
+        <div class="column-stack">
+            {# תאורת שירותים #}
+            <div class="gen-box">
+                <h4 class="box-title">תאורת שירותים</h4>
+                <div class="btns-row">
+                    <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('BATHROOM_ON', 'GIRLS_GENERAL')">ON</button>
+                    <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('BATHROOM_OFF', 'GIRLS_GENERAL')">OFF</button>
+                </div>
+                <div class="indicators-container">
+                    <div class="indicator-row">
+                        {{ gen_indicator("בית 7", "G7_T") }} 
+                        {{ gen_indicator("בית 8", "G8_T") }} 
+                        {{ gen_indicator("בית 10", "G10_T") }}
+                    </div>
+                    <div class="indicator-row">
+                        {{ gen_indicator("בית 12", "G12_T") }} 
+                        {{ gen_indicator("בית 13", "G13_T") }}
+                    </div>
+                </div>
+            </div>
+
+            {# חימום מים #}
+            <div class="gen-box heater-box">
+                <h4 class="box-title" style="color: #e67e22;">חימום מים (דודים)</h4>
+                <div class="btns-row">
+                    <button type="button" class="btn-hmi btn-on" style="background: #e67e22;" onclick="handleControlAction('HEATER_ON', 'GIRLS_GENERAL')">ON</button>
+                    <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('HEATER_OFF', 'GIRLS_GENERAL')">OFF</button>
+                </div>
+                <div class="indicator-row">
+                    {{ gen_indicator("בית 8", "G8_W") }}
+                    {{ gen_indicator("בית 10", "G10_W") }}
+                    {{ gen_indicator("בית 12", "G12_W") }}
+                    {{ gen_indicator("בית 13", "G13_W") }}
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<style>
+    .girls-general-wrapper { direction: rtl; padding: 10px; }
+    
+    .main-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 20px; 
+        align-items: start;
+    }
+
+    .column-stack { display: flex; flex-direction: column; gap: 20px; }
+
+    .gen-box { 
+        background: #161616; 
+        border: 1px solid #333; 
+        border-radius: 12px; 
+        padding: 18px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    .box-title { 
+        color: #ffcc00; 
+        text-align: center; 
+        border-bottom: 1px solid #333; 
+        padding-bottom: 10px; 
+        margin-bottom: 15px; 
+        font-size: 1.1rem; 
+        font-weight: bold;
+    }
+
+    .btns-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    
+    .btn-hmi { 
+        padding: 10px 18px; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-weight: bold; 
+        border: none; 
+        min-width: 80px;
+        transition: transform 0.1s;
+    }
+    .btn-hmi:active { transform: scale(0.95); }
+    .btn-on { background: #2ecc71; color: white; }
+    .btn-off { background: #e74c3c; color: white; }
+
+    .row-separator { border-top: 1px solid #222; margin: 12px 0; }
+    .group-header { color: #666; font-size: 0.8rem; margin-bottom: 10px; text-align: right; font-weight: bold; }
+
+    .indicators-container { display: flex; flex-direction: column; gap: 10px; }
+    .indicator-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    
+    /* סידור גריד לקרוואנים */
+    .caravan-grid { 
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 10px; 
+        justify-items: center; 
+    }
+
+    .indicator-cell { display: flex; flex-direction: column; align-items: center; width: 45px; }
+    .indicator-label { font-size: 0.75rem; color: #999; margin-top: 5px; }
+
+    .status-indicator { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+    .status-indicator.unknown { background: #444; }
+
+    /* התאמה למסכים קטנים */
+    @media (max-width: 1100px) {
+        .main-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 750px) {
+        .main-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<script>
+    /**
+     * פונקציית רענון הסטטוס
+     * פונה ל-API המרכז של הפעלה כללית בנות
+     */
+    function refreshControlStatus() {
+        updateControlIndicators('/api/status/girls_general_full', 'stat_');
+    }
+</script>
+{% endblock %}

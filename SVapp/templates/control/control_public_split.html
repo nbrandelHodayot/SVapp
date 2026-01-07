@@ -1,0 +1,193 @@
+{% extends "control_base.html" %}
+
+{% block title %}בקרה - פיצול מבנים ציבורי{% endblock %}
+{% block page_name %}אזור ציבורי - חלוקה למבנים{% endblock %}
+
+{% block back_url %}/nav_control.html{% endblock %}
+{% block back_action %}PUBLIC_MAIN{% endblock %}
+
+{# --- הגדרת המאקרו לכרטיס שליחה (זהה לשפה העיצובית של שאר האתר) --- #}
+{% macro public_building_card(title, prefix, items) %}
+<div class="building-card">
+    <h4 class="card-title-label">{{ title }}</h4>
+    <div class="card-rows-container">
+        {% for key, label in items.items() %}
+        <div class="device-row">
+            <span class="device-name">{{ label }}</span>
+            {# הקידומת C_P_S עבור Control Public Split #}
+            <div class="status-indicator unknown" id="stat_C_P_S_{{ prefix }}_{{ key }}"></div>
+            <div class="button-pair">
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ prefix }}_{{ key }}_OFF', 'C_P_S')">OFF</button>
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ prefix }}_{{ key }}_ON', 'C_P_S')">ON</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% block control_content %}
+<div class="public-split-wrapper">
+    
+    {# ניווט פנימי בתוך האזור הציבורי #}
+    <div class="internal-nav">
+        <button class="nav-btn active">חלוקה למבנים</button>
+        <button class="nav-btn" onclick="navigateTo('/control_public_shabbat.html', 'PUBLIC_SHABBAT')">שעוני שבת</button>
+        <button class="nav-btn danger-btn" onclick="navigateTo('/control_public_d1_can.html', 'PUBLIC_D1')">ביטול חיישן D1</button>
+    </div>
+
+    <div class="buildings-grid">
+        
+        {# בית כנסת #}
+        {{ public_building_card("בית כנסת", "SYN", {
+            'AC': 'מיזוג אוויר',
+            'L_MEN': 'תאורה עזרת גברים',
+            'L_WOMEN': 'תאורה עזרת נשים',
+            'L_DEC': 'תאורה דקורטיבית'
+        }) }}
+
+        {# חדר אוכל #}
+        {{ public_building_card("חדר אוכל", "DR", {
+            'AC': 'מיזוג אוויר',
+            'L': 'תאורה כללית',
+            'URN': 'מיחם (שבת)',
+            'C_COLD': 'מקרר קירור',
+            'C_SALAD': 'מקרר סלטים',
+            'H_RIGHT': 'פס חימום ימין',
+            'H_LEFT': 'פס חימום שמאל'
+        }) }}
+
+        {# מטבח #}
+        {{ public_building_card("מטבח", "KIT", {
+            'L_KIT': 'תאורה פנימית',
+            'L_PERG': 'תאורה פרגולה',
+            'H_MEAT': 'תנור בשרי',
+            'P_MEAT': 'סיר בשרי',
+            'H_DAIRY': 'תנור חלבי',
+            'P_DAIRY': 'סיר חלבי'
+        }) }}
+
+    </div>
+</div>
+
+<style>
+    .public-split-wrapper { direction: rtl; padding: 10px; }
+
+    /* ניווט פנימי */
+    .internal-nav {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .nav-btn {
+        padding: 10px 25px;
+        background: #1a1a1a;
+        color: #888;
+        border: 1px solid #333;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    .nav-btn.active {
+        background: #ffcc00;
+        color: #000;
+        border-color: #ffcc00;
+        box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+    }
+    .danger-btn {
+        border-color: #400;
+        color: #a55;
+    }
+
+    /* גריד המבנים */
+    .buildings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 25px;
+        justify-items: center;
+    }
+
+    .building-card {
+        background: #0f0f0f;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 30px 15px 15px;
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .card-title-label {
+        position: absolute;
+        top: -14px;
+        right: 20px;
+        background: #ffcc00;
+        color: #000;
+        padding: 2px 18px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .device-row {
+        display: flex;
+        align-items: center;
+        background: #1a1a1a;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border: 1px solid #222;
+    }
+
+    .device-name { 
+        flex: 1; 
+        text-align: right; 
+        color: #eee; 
+        font-size: 0.9rem; 
+    }
+
+    .status-indicator {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        margin: 0 15px;
+        background: #333;
+        border: 1px solid #444;
+    }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+
+    .button-pair { display: flex; gap: 8px; }
+    
+    .btn-hmi {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.75rem;
+        min-width: 50px;
+    }
+    .btn-on { background: #28a745; color: white; }
+    .btn-off { background: #dc3545; color: white; }
+
+    @media (max-width: 600px) {
+        .buildings-grid { grid-template-columns: 1fr; }
+        .nav-btn { width: 100%; }
+    }
+</style>
+
+<script>
+    /**
+     * עדכון סטטוס מהבקר עבור האזור הציבורי
+     */
+    function refreshControlStatus() {
+        // שימוש ב-Endpoint של הבקר לאזור הציבורי
+        updateControlIndicators('/api/status/public_control', 'stat_C_P_S_');
+    }
+</script>
+{% endblock %}

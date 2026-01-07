@@ -1,0 +1,154 @@
+{% extends "control_base.html" %}
+
+{% block title %}שעוני שבת - אזור ציבורי{% endblock %}
+{% block page_name %}אזור ציבורי - שעוני שבת{% endblock %}
+
+{% block back_url %}/control_public_split.html{% endblock %}
+{% block back_action %}PUBLIC_SHABBAT{% endblock %}
+
+{# ניהול פרמטרים: טאב ראשי ומכשיר פעיל (רלוונטי רק לטאב חדר אוכל) #}
+{% set active_tab = request.args.get('tab', 'syn_ac') %}
+{% set active_dev = request.args.get('dev', 'DR_AC') %}
+
+{% block control_content %}
+<div class="public-shabbat-wrapper">
+
+    {# --- ניווט טאבים ראשי (עליון) --- #}
+    <div class="shabbat-tabs-nav">
+        <button class="shabbat-tab-btn {{ 'active' if active_tab == 'syn_ac' }}" 
+                onclick="window.location.href='?tab=syn_ac'">בית כנסת - מיזוג</button>
+        <button class="shabbat-tab-btn {{ 'active' if active_tab == 'syn_light' }}" 
+                onclick="window.location.href='?tab=syn_light'">בית כנסת - תאורה</button>
+        <button class="shabbat-tab-btn {{ 'active' if active_tab == 'dr_kit' }}" 
+                onclick="window.location.href='?tab=dr_kit&dev=DR_AC'">חדר אוכל ומטבח</button>
+    </div>
+
+    <div class="shabbat-layout {{ 'has-sidebar' if active_tab == 'dr_kit' }}">
+        
+        {# --- תפריט צד למכשירים: מופיע רק בטאב חדר אוכל ומטבח --- #}
+        {% if active_tab == 'dr_kit' %}
+        <aside class="device-sidebar">
+            <div class="sidebar-label">בחר מכשיר שליטה:</div>
+            
+            <div class="sidebar-category">חדר אוכל</div>
+            <button class="side-btn {{ 'active' if active_dev == 'DR_AC' }}" onclick="window.location.href='?tab=dr_kit&dev=DR_AC'">מיזוג אוויר</button>
+            <button class="side-btn {{ 'active' if active_dev == 'DR_L' }}" onclick="window.location.href='?tab=dr_kit&dev=DR_L'">תאורה</button>
+            <button class="side-btn {{ 'active' if active_dev == 'DR_URN' }}" onclick="window.location.href='?tab=dr_kit&dev=DR_URN'">מיחם</button>
+            <button class="side-btn {{ 'active' if active_dev == 'DR_COLD' }}" onclick="window.location.href='?tab=dr_kit&dev=DR_COLD'">מקררים</button>
+            
+            <div class="sidebar-category">מטבח</div>
+            <button class="side-btn {{ 'active' if active_dev == 'KIT_L' }}" onclick="window.location.href='?tab=dr_kit&dev=KIT_L'">תאורה</button>
+            <button class="side-btn {{ 'active' if active_dev == 'KIT_OVEN' }}" onclick="window.location.href='?tab=dr_kit&dev=KIT_OVEN'">תנורים</button>
+            <button class="side-btn {{ 'active' if active_dev == 'KIT_POT' }}" onclick="window.location.href='?tab=dr_kit&dev=KIT_POT'">סירים</button>
+        </aside>
+        {% endif %}
+
+        <main class="timers-section">
+            <h3 class="current-selection-title">
+                <i class="fas fa-clock"></i>
+                {% if active_tab == 'syn_ac' %}בית כנסת: שעוני מיזוג אוויר
+                {% elif active_tab == 'syn_light' %}בית כנסת: שעוני תאורה
+                {% else %}שעוני שבת: {{ active_dev.replace('DR_AC', 'מיזוג ח"א').replace('DR_L', 'תאורה ח"א').replace('DR_URN', 'מיחם').replace('DR_COLD', 'מקררים').replace('KIT_L', 'תאורה מטבח').replace('KIT_OVEN', 'תנורים').replace('KIT_POT', 'סירים') }}
+                {% endif %}
+            </h3>
+
+            <div class="timers-grid">
+                {% for i in range(8) %}
+                    {% set y_val = 187 + (i * 76) %}
+                    <div class="timer-card">
+                        <div class="timer-info">
+                            <span class="timer-number">שעון {{ i + 1 }}</span>
+                            {# יצירת ID ייחודי לסטטוס שכולל את הטאב והמכשיר #}
+                            <div class="status-indicator unknown" id="stat_PS_{{ active_tab }}_{{ active_dev if active_tab == 'dr_kit' else 'NONE' }}_{{ i + 1 }}"></div>
+                        </div>
+                        <button type="button" class="btn-shabbat-action" 
+                                onclick="handleShabbatClick('{{ active_tab }}', '{{ active_dev }}', 162, {{ y_val }})">
+                            שינוי מצב (ON/OFF)
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<style>
+    .public-shabbat-wrapper { direction: rtl; padding: 15px; }
+
+    /* טאבים ראשיים */
+    .shabbat-tabs-nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+    .shabbat-tab-btn {
+        padding: 12px 22px; background: #1a1a1a; color: #888; border: 1px solid #333;
+        border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;
+    }
+    .shabbat-tab-btn.active { background: #ffcc00; color: #000; border-color: #ffcc00; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.2); }
+
+    /* פריסת עמוד (Main + Sidebar) */
+    .shabbat-layout { display: block; }
+    .shabbat-layout.has-sidebar { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+
+    /* תפריט צד */
+    .device-sidebar { background: #111; border: 1px solid #333; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .sidebar-label { color: #ffcc00; font-size: 0.85rem; margin-bottom: 8px; text-align: center; border-bottom: 1px solid #222; padding-bottom: 5px; }
+    .sidebar-category { color: #555; font-size: 0.75rem; font-weight: bold; margin-top: 10px; padding-right: 5px; }
+    
+    .side-btn {
+        padding: 10px 12px; background: #1a1a1a; color: #999; border: 1px solid #222;
+        border-radius: 6px; text-align: right; cursor: pointer; font-size: 0.9rem; transition: 0.2s;
+    }
+    .side-btn:hover { background: #222; }
+    .side-btn.active { background: #333; color: #fff; border-right: 4px solid #ffcc00; }
+
+    /* גריד שעונים */
+    .current-selection-title { color: #ffcc00; text-align: center; margin-bottom: 20px; font-size: 1.15rem; }
+    .timers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+
+    .timer-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+    .timer-info { display: flex; justify-content: space-between; align-items: center; }
+    .timer-number { color: #aaa; font-weight: bold; }
+
+    .btn-shabbat-action {
+        width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444;
+        border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;
+    }
+    .btn-shabbat-action:active { transform: scale(0.97); background: #333; }
+
+    .status-indicator { width: 14px; height: 14px; border-radius: 50%; background: #333; }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+
+    /* התאמה לנייד */
+    @media (max-width: 900px) {
+        .shabbat-layout.has-sidebar { grid-template-columns: 1fr; }
+        .device-sidebar { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+        .side-btn { min-width: 120px; text-align: center; }
+    }
+</style>
+
+<script>
+    /**
+     * פונקציה לשליחת פקודת לחיצה לבקר לפי קואורדינטות
+     */
+    function handleShabbatClick(tab, dev, x, y) {
+        const action = `X${x}_Y${y}`;
+        // הקונטקסט נבנה מהטאב והמכשיר (אם קיים)
+        const context = `PUB_SHB_${tab.toUpperCase()}${tab === 'dr_kit' ? '_' + dev : ''}`;
+        
+        handleControlAction(action, context);
+    }
+
+    /**
+     * פונקציית רענון סטטוס - מופעלת אוטומטית ע"י control_base
+     */
+    function refreshControlStatus() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'syn_ac';
+        const dev = urlParams.get('dev') || 'DR_AC';
+        
+        const endpoint = `/api/status/public_shabbat?tab=${tab}&dev=${dev}`;
+        const prefix = `stat_PS_${tab}_${tab === 'dr_kit' ? dev : 'NONE'}_`;
+        
+        updateControlIndicators(endpoint, prefix);
+    }
+</script>
+{% endblock %}

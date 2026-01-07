@@ -1,0 +1,76 @@
+{% extends "base_layout.html" %}
+
+{% block extra_js %}
+<script>
+    /**
+     * פונקציה מרכזית לביצוע פעולות בקר (ON/OFF/TOGGLE)
+     * @param {string} action - שם הפקודה (למשל AC_ON)
+     * @param {string} context - ההקשר (למשל BOYS_GENERAL)
+     * @param {string} targetUrl - (אופציונלי) דף למעבר לאחר הלחיצה
+     */
+    async function handleControlAction(action, context, targetUrl = null) {
+        const footer = document.getElementById('status-message');
+        const fullAction = context ? `${context}/${action}` : action;
+        
+        if (footer) footer.innerText = "שולח פקודה: " + action + "...";
+
+        try {
+            const response = await fetch('/control?action=' + encodeURIComponent(fullAction));
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                if (footer) footer.innerText = "בוצע בהצלחה";
+                
+                // אם הוגדר דף יעד (ניווט), עוברים אליו. אם לא - מרעננים סטטוס מקומי
+                if (targetUrl && targetUrl !== 'null') {
+                    window.location.href = targetUrl;
+                } else {
+                    // המתנה קצרה לעדכון בבקר ואז רענון נוריות
+                    setTimeout(() => {
+                        if (typeof refreshControlStatus === 'function') refreshControlStatus();
+                    }, 600);
+                }
+            } else {
+                if (footer) footer.innerText = "שגיאה: " + data.message;
+            }
+        } catch (error) {
+            console.error("Control Error:", error);
+            if (footer) footer.innerText = "שגיאת תקשורת";
+        }
+    }
+
+    /**
+     * פונקציה גנרית לרענון נוריות סטטוס בדפי בקרה
+     */
+    function updateControlIndicators(apiUrl, idPrefix = 'stat_') {
+        fetch(apiUrl)
+            .then(res => res.json())
+            .then(data => {
+                // תמיכה גם במבנה {status: "success", data: {...}} וגם במילון ישיר
+                const statusMap = data.data || data; 
+                
+                for (const [key, val] of Object.entries(statusMap)) {
+                    const el = document.getElementById(idPrefix + key);
+                    if (el) {
+                        el.classList.remove('on', 'off', 'unknown');
+                        el.classList.add(val.toLowerCase());
+                    }
+                }
+            })
+            .catch(err => console.error("Status Update Failed:", err));
+    }
+
+    // רענון אוטומטי כל 5 שניות (אם מוגדר endpoint)
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof refreshControlStatus === 'function') {
+            refreshControlStatus();
+            setInterval(refreshControlStatus, 5000);
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+    {# מיקום להזרקת התוכן הספציפי (טבלאות, כפתורים וכו') #}
+    {% block control_content %}{% endblock %}
+{% endblock %}

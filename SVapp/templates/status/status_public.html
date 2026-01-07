@@ -1,0 +1,102 @@
+{% extends "status/status_base.html" %}
+{% set active_tab = 'public' %}
+{% set current_context = 'STATUS_PUBLIC' %}
+{% block context_name %}STATUS_PUBLIC{% endblock %}
+{% block back_action %}STATUS_PUBLIC{% endblock %}
+
+{# --- הגדרת המקרואים --- #}
+{% macro led(id) %}
+    <div id="stat_{{ id }}" class="led-indicator unknown"></div>
+{% endmacro %}
+
+{% macro large_building(title, prefix, labels) %}
+<div class="hmi-box">
+    <div class="box-header">{{ title }}</div>
+    <div class="box-content">
+        {% for key, label in labels.items() %}
+        <div class="box-line">
+            <span class="label-text">{{ label }}</span>
+            {{ led(prefix ~ "_" ~ key) }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro small_building_row(id, label) %}
+<div class="status-row">
+    <div class="cell name">{{ label }}</div>
+    <div class="cell sensor">
+        <span>חיישן:</span>
+        <span id="stat_{{id}}_S" class="sensor-val">--</span>
+    </div>
+    <div class="cell control"><span>תאורה</span> {{ led(id ~ "_L") }}</div>
+    <div class="cell control"><span>מיזוג</span> {{ led(id ~ "_AC") }}</div>
+</div>
+{% endmacro %}
+
+{% block page_name %}סטטוס מערכות - אזור ציבורי{% endblock %}
+
+{% block status_content %}
+<div class="hmi-dashboard" dir="rtl">
+    <div class="top-section-grid">
+        {{ large_building("בית כנסת", "SYN", {'AC': 'מיזוג', 'L_MEN': 'תאורה גברים', 'L_WOMEN': 'תאורה נשים', 'L_DEC': 'דקורטיבית'}) }}
+        {{ large_building("חדר אוכל", "DR", {'AC': 'מיזוג', 'L': 'תאורה', 'URN': 'מיחם', 'C_COLD': 'קירור', 'C_SALAD': 'סלטים', 'H_RIGHT': 'חימום ימין', 'H_LEFT': 'חימום שמאל'}) }}
+        {{ large_building("מטבח", "KIT", {'L_KIT': 'תאורה', 'L_PERG': 'פרגולה', 'H_MEAT': 'תנור בשרי', 'P_MEAT': 'סיר בשרי', 'H_DAIRY': 'תנור חלבי', 'P_DAIRY': 'סיר חלבי'}) }}
+    </div>
+
+    <div class="section-divider">מבנים קטנים</div>
+    <div class="list-container">
+        {{ small_building_row("LIB", "ספריה") }}
+        {{ small_building_row("HOLLAND", "בית הולנד") }}
+        {{ small_building_row("NATIV", "נתיב") }}
+        {{ small_building_row("D_SMALL", "דוד קטן") }}
+        {{ small_building_row("D_BIG", "דוד גדול") }}
+        {{ small_building_row("POLICE", "משטרה") }}
+        {{ small_building_row("SHELTER", "מקלט") }}
+    </div>
+</div>
+
+<style>
+    .hmi-dashboard { background: #000; padding: 15px; color: white; border-radius: 8px; }
+    .top-section-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .hmi-box { background: #151515; border: 1px solid #333; border-radius: 6px; }
+    .box-header { background: #222; color: #ffcc00; text-align: center; padding: 5px; font-weight: bold; border-bottom: 2px solid #ffcc00; }
+    .box-content { padding: 10px; }
+    .box-line { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; border-bottom: 1px solid #222; }
+    .section-divider { color: #ffcc00; border-bottom: 2px solid #ffcc00; margin: 15px 0; font-weight: bold; }
+    .status-row { display: grid; grid-template-columns: 1.5fr 1.2fr 1fr 1fr; padding: 8px; border-bottom: 1px solid #1a1a1a; }
+    .led-indicator { width: 14px; height: 14px; border-radius: 50%; background: #222; border: 1px solid #444; }
+    .led-indicator.on { background: #0f0; box-shadow: 0 0 8px #0f0; }
+    .led-indicator.off { background: #f00; box-shadow: 0 0 4px #700; }
+</style>
+
+{% block extra_js %}
+<script>
+function refreshPageData() {
+    fetch('/api/status/public') // שים לב לנתיב המדויק ב-server_app.py
+        .then(res => res.json())
+        .then(data => {
+            for (const [key, val] of Object.entries(data)) {
+                const el = document.getElementById('stat_' + key);
+                if (el) {
+                    // עדכון קלאסים לפי ה-CSS שלך (on/off/unknown)
+                    el.className = 'led-indicator ' + val.toLowerCase();
+                    
+                    // אם זה טקסט (חיישן)
+                    if (el.classList.contains('sensor-val')) {
+                        el.innerText = (val === 'ON') ? 'פעיל' : 'מנוטרל';
+                    }
+                }
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    refreshPageData();
+    setInterval(refreshPageData, 5000); // עדכון כל 5 שניות
+});
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "control_base.html" %}
+
+{% block title %}בקרת אזור בנים - פירוט מבנים{% endblock %}
+{% block page_name %}אזור בנים - שליטה לפי מבנה{% endblock %}
+
+{% block back_url %}/nav_control.html{% endblock %}
+{% block back_action %}BOYS_SPLIT{% endblock %}
+
+{# --- הגדרת המקרו לכרטיס בניין --- #}
+{% macro building_card(title, devices) %}
+<div class="building-card">
+    <h4 class="card-title-label">{{ title }}</h4>
+    <div class="card-rows-container">
+        {% for dev in devices %}
+        <div class="device-row">
+            <span class="device-name">{{ dev.label }}</span>
+            <div class="status-indicator unknown" id="stat_{{ dev.id }}"></div>
+            <div class="button-pair">
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.id }}_OFF', 'C_B_S')">OFF</button>
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.id }}_ON', 'C_B_S')">ON</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% block control_content %}
+<div class="boys-split-wrapper">
+    <div class="buildings-grid">
+        {# מבנים סטנדרטיים 1-5 #}
+        {{ building_card("בית 1", [{"label": "מיזוג", "id": "B1_AC"}, {"label": "חדרים", "id": "B1_R"}, {"label": "שירותים", "id": "B1_T"}]) }}
+        {{ building_card("בית 2", [{"label": "מיזוג", "id": "B2_AC"}, {"label": "חדרים", "id": "B2_R"}, {"label": "שירותים", "id": "B2_T"}]) }}
+        {{ building_card("בית 3", [{"label": "מיזוג", "id": "B3_AC"}, {"label": "חדרים", "id": "B3_R"}, {"label": "שירותים", "id": "B3_T"}]) }}
+        {{ building_card("בית 4", [{"label": "מיזוג", "id": "B4_AC"}, {"label": "חדרים", "id": "B4_R"}, {"label": "שירותים", "id": "B4_T"}]) }}
+        {{ building_card("בית 5", [{"label": "מיזוג", "id": "B5_AC"}, {"label": "חדרים", "id": "B5_R"}, {"label": "שירותים", "id": "B5_T"}]) }}
+
+        {# בית 9 - עם פיצול מיזוג #}
+        {{ building_card("בית 9", [
+            {"label": "מיזוג א'", "id": "B9_AC_A"},
+            {"label": "מיזוג ב'", "id": "B9_AC_B"},
+            {"label": "חדרים", "id": "B9_R"},
+            {"label": "שירותים", "id": "B9_T"}
+        ]) }}
+
+        {# בית 11 קומה א' #}
+        {{ building_card("בית 11 - קומה א'", [
+            {"label": "מיזוג א'", "id": "B11A_AC_A"},
+            {"label": "מיזוג ב'", "id": "B11A_AC_B"},
+            {"label": "חדרים", "id": "B11A_R"},
+            {"label": "שירותים", "id": "B11A_T"}
+        ]) }}
+
+        {# בית 11 קומה ב' #}
+        {{ building_card("בית 11 - קומה ב'", [
+            {"label": "מיזוג א'", "id": "B11B_AC_A"},
+            {"label": "מיזוג ב'", "id": "B11B_AC_B"},
+            {"label": "חדרים", "id": "B11B_R"},
+            {"label": "שירותים", "id": "B11B_T"}
+        ]) }}
+    </div>
+
+    {# מקרא קצר למטה #}
+    <div class="split-legend">
+        <p>* שליטה פרטנית מאפשרת כיבוי/הפעלה של אזורים ספציפיים ללא השפעה על שאר המבנים.</p>
+    </div>
+</div>
+
+<style>
+    .boys-split-wrapper { direction: rtl; padding: 10px; }
+    
+    .buildings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        justify-items: center;
+    }
+
+    .building-card {
+        background: #0f0f0f;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 25px 15px 15px;
+        position: relative;
+        width: 100%;
+        max-width: 380px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+
+    .card-title-label {
+        position: absolute;
+        top: -14px;
+        right: 20px;
+        background: #ffcc00;
+        color: #000;
+        padding: 2px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    }
+
+    .card-rows-container { display: flex; flex-direction: column; gap: 10px; }
+
+    .device-row {
+        display: flex;
+        align-items: center;
+        background: #1a1a1a;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #222;
+    }
+
+    .device-name { flex: 1; text-align: right; color: #ddd; font-weight: 500; font-size: 0.95rem; }
+
+    .status-indicator {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        margin: 0 15px;
+        background: #333; /* Unknown state */
+        border: 1px solid #444;
+        transition: all 0.3s ease;
+    }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; border-color: #fff; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+
+    .button-pair { display: flex; gap: 8px; }
+    
+    .btn-hmi {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.8rem;
+        transition: opacity 0.2s;
+        min-width: 55px;
+    }
+    .btn-hmi:active { transform: scale(0.95); opacity: 0.8; }
+    .btn-on { background: #28a745; color: white; }
+    .btn-off { background: #dc3545; color: white; }
+
+    .split-legend {
+        margin-top: 30px;
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        font-size: 0.85rem;
+    }
+
+    /* התאמה למסכים קטנים */
+    @media (max-width: 600px) {
+        .buildings-grid { grid-template-columns: 1fr; }
+        .building-card { max-width: 100%; }
+    }
+</style>
+
+<script>
+    /**
+     * פונקציה לעדכון מצב הנורות
+     * משתמשת בפונקציית העזר של control_base
+     */
+    function refreshControlStatus() {
+        // קריאה ל-API שמחזיר את מצב כל המבנים באזור הבנים
+        updateControlIndicators('/api/status/boys_control', 'stat_');
+    }
+</script>
+{% endblock %}

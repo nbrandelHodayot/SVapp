@@ -1,0 +1,211 @@
+{% extends "control_base.html" %}
+
+{% block title %}אזור בנות - פירוט מבנים (11-13){% endblock %}
+{% block page_name %}אזור בנות - חלק ב' (11-13){% endblock %}
+
+{% block back_url %}/nav_control.html{% endblock %}
+{% block back_action %}GIRLS_SPLIT{% endblock %}
+
+{# --- הגדרת המקרו לכרטיס בניין --- #}
+{% macro building_card(title, devices) %}
+<div class="building-card">
+    <h4 class="card-title-label">{{ title }}</h4>
+    <div class="card-rows-container">
+        {% for dev in devices %}
+        <div class="device-row">
+            <span class="device-name">{{ dev.label }}</span>
+            {# שימוש בקידומת C_G_S כפי שמוגדר בבקר #}
+            <div class="status-indicator unknown" id="stat_C_G_S_{{ dev.id }}"></div>
+            <div class="button-pair">
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.id }}_OFF', 'C_G_S')">OFF</button>
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.id }}_ON', 'C_G_S')">ON</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% block control_content %}
+<div class="girls-split-wrapper">
+    
+    {# ניווט פנימי בין חלקי הבנות #}
+    <div class="internal-nav">
+        <button class="nav-btn" onclick="navigateTo('/control_girls_split1.html', 'GIRLS_SPLIT')">מבנים 1-10</button>
+        <button class="nav-btn active">מבנים 11-13</button>
+    </div>
+
+    <div class="buildings-grid">
+        
+        {# בית 11 - מבנה סטנדרטי #}
+        {{ building_card("בית 11", [
+            {"label": "מיזוג", "id": "B11_AC"},
+            {"label": "חדרים", "id": "B11_R"},
+            {"label": "שירותים", "id": "B11_T"}
+        ]) }}
+
+        <div class="section-divider">מתחם מגורים 12</div>
+
+        {# בית 12 - פירוט יחידות #}
+        {{ building_card("בית 12 - יחידה א'", [
+            {"label": "מיזוג", "id": "B12A_AC"},
+            {"label": "חדרים", "id": "B12A_R"},
+            {"label": "שירותים", "id": "B12A_T"},
+            {"label": "דוד חימום", "id": "B12_HEAT"}
+        ]) }}
+
+        {{ building_card("בית 12 - יחידה ב'", [
+            {"label": "מיזוג", "id": "B12B_AC"},
+            {"label": "חדרים", "id": "B12B_R"},
+            {"label": "שירותים", "id": "B12B_T"}
+        ]) }}
+
+        {{ building_card("בית 12 - יחידה ג'", [
+            {"label": "מיזוג", "id": "B12C_AC"},
+            {"label": "חדרים", "id": "B12C_R"},
+            {"label": "שירותים", "id": "B12C_T"}
+        ]) }}
+
+        <div class="section-divider">מתחם מגורים 13</div>
+
+        {# בית 13 - פירוט יחידות #}
+        {{ building_card("בית 13 - יחידה א'", [
+            {"label": "מיזוג", "id": "B13A_AC"},
+            {"label": "חדרים", "id": "B13A_R"},
+            {"label": "שירותים", "id": "B13A_T"},
+            {"label": "דוד חימום", "id": "B13_HEAT"}
+        ]) }}
+
+        {{ building_card("בית 13 - יחידה ב'", [
+            {"label": "מיזוג", "id": "B13B_AC"},
+            {"label": "חדרים", "id": "B13B_R"},
+            {"label": "שירותים", "id": "B13B_T"}
+        ]) }}
+
+        {{ building_card("בית 13 - יחידה ג'", [
+            {"label": "מיזוג", "id": "B13C_AC"},
+            {"label": "חדרים", "id": "B13C_R"},
+            {"label": "שירותים", "id": "B13C_T"}
+        ]) }}
+
+    </div>
+</div>
+
+<style>
+    .girls-split-wrapper { direction: rtl; padding: 10px; }
+
+    /* ניווט פנימי */
+    .internal-nav {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+        justify-content: center;
+    }
+    .nav-btn {
+        padding: 10px 25px;
+        background: #222;
+        color: #aaa;
+        border: 1px solid #444;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .nav-btn.active {
+        background: #ffcc00;
+        color: #000;
+        border-color: #ffcc00;
+        box-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
+    }
+
+    /* מפריד בין מתחמים */
+    .section-divider {
+        grid-column: 1 / -1;
+        width: 100%;
+        color: #ffcc00;
+        border-bottom: 1px solid #333;
+        padding: 15px 0 5px 0;
+        margin-bottom: 10px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        text-align: right;
+    }
+
+    /* גריד המבנים */
+    .buildings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        justify-items: center;
+    }
+
+    .building-card {
+        background: #0f0f0f;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 25px 15px 15px;
+        position: relative;
+        width: 100%;
+        max-width: 380px;
+    }
+
+    .card-title-label {
+        position: absolute;
+        top: -14px;
+        right: 20px;
+        background: #ffcc00;
+        color: #000;
+        padding: 2px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+
+    .device-row {
+        display: flex;
+        align-items: center;
+        background: #1a1a1a;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+    }
+
+    .device-name { flex: 1; text-align: right; color: #ddd; font-size: 0.85rem; }
+
+    .status-indicator {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        margin: 0 15px;
+        background: #333;
+        border: 1px solid #444;
+    }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+
+    .button-pair { display: flex; gap: 8px; }
+    
+    .btn-hmi {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
+    .btn-on { background: #28a745; color: white; }
+    .btn-off { background: #dc3545; color: white; }
+
+    @media (max-width: 600px) {
+        .buildings-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<script>
+    /**
+     * עדכון סטטוס מהבקר
+     * משתמש ב-API של בקרת הבנות
+     */
+    function refreshControlStatus() {
+        updateControlIndicators('/api/status/girls_control', 'stat_C_G_S_');
+    }
+</script>
+{% endblock %}

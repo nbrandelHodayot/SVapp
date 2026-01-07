@@ -1,0 +1,166 @@
+{% extends "control_base.html" %}
+
+{% block page_name %}
+    {{ page_title if page_title else "אזור בנים - הפעלה כללית" }}
+{% endblock %}
+
+{% block back_url %}/nav_control.html{% endblock %}
+{% block back_action %}BOYS_GENERAL{% endblock %}
+
+{# --- הגדרת המקרו לנורית אינדיקציה --- #}
+{% macro gen_indicator(label, id) %}
+<div class="indicator-cell">
+    <div class="led-wrapper">
+        <div class="status-indicator small unknown" id="stat_{{ id }}"></div>
+    </div>
+    <span class="indicator-label">{{ label }}</span>
+</div>
+{% endmacro %}
+
+{% block control_content %}
+<div class="boys-general-wrapper">
+    <div class="top-row">
+        <div class="gen-box">
+            <h4 class="box-title">תאורת שירותים</h4>
+            <div class="btns-row">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('BATHROOM_ON', 'BOYS_GENERAL')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('BATHROOM_OFF', 'BOYS_GENERAL')">OFF</button>
+            </div>
+            <div class="indicators-grid">
+                {{ gen_indicator("בית 4", "T_B4") }}
+                {{ gen_indicator("בית 3", "T_B3") }}
+                {{ gen_indicator("בית 2", "T_B2") }}
+                {{ gen_indicator("בית 1", "T_B1") }}
+                {{ gen_indicator("בית 9", "T_B9") }}
+                <div class="empty-cell"></div>
+                <div class="empty-cell"></div>
+                {{ gen_indicator("בית 5", "T_B5") }}
+                <div class="full-width-label">{{ gen_indicator("בית 11 - א", "T_B11A") }}</div>
+                <div class="full-width-label">{{ gen_indicator("בית 11 - ב", "T_B11B") }}</div>
+            </div>
+        </div>
+
+        <div class="gen-box">
+            <h4 class="box-title">תאורת חדרים</h4>
+            <div class="btns-row">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('ROOMS_ON', 'BOYS_GENERAL')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('ROOMS_OFF', 'BOYS_GENERAL')">OFF</button>
+            </div>
+            <div class="indicators-grid">
+                {{ gen_indicator("בית 4", "R_B4") }}
+                {{ gen_indicator("בית 3", "R_B3") }}
+                {{ gen_indicator("בית 2", "R_B2") }}
+                {{ gen_indicator("בית 1", "R_B1") }}
+                {{ gen_indicator("בית 9", "R_B9") }}
+                <div class="empty-cell"></div>
+                <div class="empty-cell"></div>
+                {{ gen_indicator("בית 5", "R_B5") }}
+                <div class="full-width-label">{{ gen_indicator("בית 11 - א", "R_B11A") }}</div>
+                <div class="full-width-label">{{ gen_indicator("בית 11 - ב", "R_B11B") }}</div>
+            </div>
+        </div>
+
+        <div class="gen-box">
+            <h4 class="box-title">מיזוג אוויר</h4>
+            <div class="btns-row">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('AC_ON', 'BOYS_GENERAL')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('AC_OFF', 'BOYS_GENERAL')">OFF</button>
+            </div>
+            <div class="indicators-grid">
+                {{ gen_indicator("בית 4", "AC_B4") }}
+                {{ gen_indicator("בית 3", "AC_B3") }}
+                {{ gen_indicator("בית 2", "AC_B2") }}
+                {{ gen_indicator("בית 1", "AC_B1") }}
+                {{ gen_indicator("9-ב", "AC_B9B") }}
+                {{ gen_indicator("9-א", "AC_B9A") }}
+                <div class="empty-cell"></div>
+                {{ gen_indicator("בית 5", "AC_B5") }}
+                {{ gen_indicator("ב", "AC_B11AB") }}
+                {{ gen_indicator("א", "AC_B11AA") }}
+                <div class="empty-cell"></div>
+                <div class="row-label-cell">בית 11 קומה א'</div>
+                {{ gen_indicator("ב", "AC_B11BB") }}
+                {{ gen_indicator("א", "AC_B11BA") }}
+                <div class="empty-cell"></div>
+                <div class="row-label-cell">בית 11 קומה ב'</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-row">
+        <div class="gen-box empty-box">
+            <div class="proverb">"סוף מעשה במחשבה תחילה"</div>
+        </div>
+
+        <div class="gen-box heater-box-centered">
+            <h4 class="box-title">חימום מים בית 11</h4>
+            <div class="btns-row centered">
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('HEATER_ON', 'BOYS_GENERAL')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('HEATER_OFF', 'BOYS_GENERAL')">OFF</button>
+            </div>
+            <div class="heater-indicators">
+                {{ gen_indicator("קומה ב", "W_B11B") }}
+                {{ gen_indicator("קומה א", "W_B11A") }}
+            </div>
+        </div>
+
+        <div class="gen-box legend-box">
+            <p class="legend-header">מקרא</p>
+            <div class="legend-content">
+                <p>בית 9 מיזוג א': חדרים 900-902</p>
+                <p>בית 9 מיזוג ב': חדרים 903-905</p>
+                <hr class="legend-sep">
+                <p>בית 11 קומה א' מיזוג א'/ב': חדרים 1-6</p>
+                <p>בית 11 קומה ב' מיזוג א'/ב': חדרים 7-13</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .boys-general-wrapper { direction: rtl; padding: 20px; display: flex; flex-direction: column; gap: 25px; }
+    .top-row, .bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; justify-items: center; align-items: start; }
+    
+    .gen-box { background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 15px; width: 100%; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .box-title { color: #ffcc00; text-align: center; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 20px; font-size: 1.1rem; }
+    
+    .btns-row { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+    .btn-hmi { padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; border: none; min-width: 70px; }
+    .btn-on { background: #28a745; color: white; }
+    .btn-off { background: #dc3545; color: white; }
+
+    .indicators-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 5px; justify-items: center; }
+    .indicator-cell { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .indicator-label { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 4px; white-space: nowrap; }
+    
+    .status-indicator { width: 14px; height: 14px; border-radius: 50%; background: #333; }
+    .status-indicator.on { background: #0f0; box-shadow: 0 0 8px #0f0; }
+    .status-indicator.off { background: #f00; }
+    .status-indicator.unknown { background: #444; }
+
+    .full-width-label { grid-column: span 4; justify-self: start; padding-right: 15px; }
+    .row-label-cell { grid-column: 4; justify-self: end; color: #888; font-size: 0.75rem; align-self: center; }
+    .heater-indicators { display: flex; justify-content: center; gap: 40px; margin-top: 10px; }
+
+    .legend-box { text-align: right; color: #ccc; font-size: 0.85em; }
+    .legend-header { text-align: center; font-weight: bold; margin-bottom: 10px; color: #fff; text-decoration: underline; }
+    .legend-sep { border: 0; border-top: 1px solid #222; margin: 10px 0; }
+    
+    .empty-box { display: flex; align-items: center; justify-content: center; border: 1px dashed #444; min-height: 100px; }
+    .proverb { color: #666; font-style: italic; text-align: center; }
+
+    @media (max-width: 1000px) {
+        .top-row, .bottom-row { grid-template-columns: 1fr; }
+        .gen-box { max-width: 450px; }
+    }
+</style>
+
+<script>
+    /**
+     * פונקציה לעדכון מצב הנורות - נקראת אוטומטית מ-control_base
+     */
+    function refreshControlStatus() {
+        updateControlIndicators('/api/status/boys_general_full', 'stat_');
+    }
+</script>
+{% endblock %}

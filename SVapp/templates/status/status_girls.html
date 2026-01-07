@@ -1,0 +1,179 @@
+{% extends "status/status_base.html" %}
+{% set active_tab = 'girls' %}
+{% set current_context = 'STATUS_GIRLS' %}
+{% block context_name %}STATUS_GIRLS{% endblock %}
+{% block back_action %}STATUS_GIRLS{% endblock %}
+
+{# --- הגדרת המקרואים --- #}
+{% macro led(id) %}
+    <div id="stat_{{ id }}" class="led-indicator unknown"></div>
+{% endmacro %}
+
+{% macro house_box(title, prefix, extra_ac=false, water_heat=false) %}
+<div class="hmi-box">
+    <div class="box-header">{{ title }}</div>
+    <div class="box-content">
+        {% if not extra_ac %}
+            <div class="box-line"><span>מיזוג אוויר</span> {{ led("SG_" ~ prefix ~ "_AC") }}</div>
+        {% else %}
+            <div class="box-line"><span class="small-text">{{ extra_ac[0] }}</span> {{ led("SG_" ~ prefix ~ "_AC1") }}</div>
+            <div class="box-line"><span class="small-text">{{ extra_ac[1] }}</span> {{ led("SG_" ~ prefix ~ "_AC2") }}</div>
+        {% endif %}
+        <div class="box-line"><span>תאורת חדרים</span> {{ led("SG_" ~ prefix ~ "_R") }}</div>
+        <div class="box-line"><span>תאורת שירותים</span> {{ led("SG_" ~ prefix ~ "_T") }}</div>
+        {% if water_heat %}
+            <div class="box-line"><span>דוד חשמל</span> {{ led("SG_" ~ prefix ~ "_WH") }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro caravan_box(num) %}
+<div class="hmi-box caravan-box">
+    <div class="box-header">קראוון {{ num }}</div>
+    <div class="box-content">
+        <div class="box-line"><span>מיזוג</span> {{ led("SG_CV" ~ num ~ "_AC") }}</div>
+        <div class="box-line"><span>תאורה</span> {{ led("SG_CV" ~ num ~ "_L") }}</div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro club_row(id, label) %}
+<div class="club-row">
+    <div class="club-cell name">מועדון {{ label }}</div>
+    <div class="club-cell sensor">
+        <span>חיישן:</span>
+        <span id="stat_SG_C{{id}}_S" class="sensor-val">--</span>
+    </div>
+    <div class="club-cell inline-led"><span>תאורה</span> {{ led("SG_C" ~ id ~ "_L") }} </div>
+    <div class="club-cell inline-led"><span>מיזוג</span> {{ led("SG_C" ~ id ~ "_AC") }} </div>
+</div>
+{% endmacro %}
+
+{% block status_content %}
+<div class="status-container" dir="rtl">
+    
+    {# --- אזור מגורים --- #}
+    <div class="houses-grid">
+        {{ house_box("בית 7", "B7", extra_ac=["700-702", "703-706"]) }}
+        {{ house_box("בית 8", "B8", water_heat=true) }}
+        {{ house_box("בית 10", "B10", extra_ac=["111-114", "115-118"], water_heat=true) }}
+        
+        {{ house_box("בניין 12 א'", "B12A", water_heat=true) }}
+        {{ house_box("בניין 12 ב'", "B12B") }}
+        {{ house_box("בניין 12 ג'", "B12C") }}
+        
+        {{ house_box("בניין 13 א'", "B13A", water_heat=true) }}
+        {{ house_box("בניין 13 ב'", "B13B") }}
+        {{ house_box("בניין 13 ג'", "B13C") }}
+    </div>
+
+    {# --- אזור קראוונים --- #}
+    <div class="section-divider">קראוונים</div>
+    <div class="houses-grid">
+        {{ caravan_box("20") }} {{ caravan_box("21") }} {{ caravan_box("22") }}
+        {{ caravan_box("23") }} {{ caravan_box("24") }} {{ caravan_box("25") }}
+        {{ caravan_box("26") }}
+    </div>
+
+    {# --- אזור מועדונים --- #}
+    <div class="section-divider">מועדונים</div>
+    <div class="clubs-container">
+        {{ club_row("7", "בית 7") }} 
+        {{ club_row("8", "בית 8") }} 
+        {{ club_row("10", "בית 10") }}
+        {{ club_row("12", "בניין 12") }} 
+        {{ club_row("13A", "13 א'") }}
+        {{ club_row("13B", "13 ב'") }} 
+        {{ club_row("13C", "13 ג'") }}
+    </div>
+</div>
+
+<style>
+    .status-container { color: white; }
+    .houses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+    
+    .hmi-box { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+    
+    /* כותרות בתים וקראוונים בורוד */
+    .box-header { 
+        background: #252525; 
+        color: #ff66cc; 
+        padding: 6px; 
+        text-align: center; 
+        font-weight: bold; 
+        font-size: 0.95rem; 
+        border-bottom: 1px solid #333;
+    }
+    
+    .box-content { padding: 12px; }
+    .box-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px solid #222; padding-bottom: 4px; }
+    .small-text { font-size: 0.75rem; color: #aaa; }
+    
+    /* מפרידי סקשנים בורוד */
+    .section-divider { 
+        margin: 35px 0 15px; 
+        color: #ff66cc; 
+        font-weight: bold; 
+        font-size: 1.1rem; 
+        border-bottom: 2px solid #ff66cc; 
+        padding-bottom: 5px;
+    }
+
+    .caravan-box { border-right: 4px solid #ff66cc; }
+
+    /* עיצוב מועדונים */
+    .clubs-container { background: #151515; border: 1px solid #333; border-radius: 8px; }
+    .club-row { 
+        display: grid; 
+        grid-template-columns: 1.2fr 1.2fr 1fr 1fr; 
+        padding: 12px 20px; 
+        border-bottom: 1px solid #222; 
+        align-items: center; 
+    }
+    .club-row:last-child { border-bottom: none; }
+    .club-cell.name { color: #ff66cc; font-weight: bold; }
+    .club-cell.sensor { font-size: 0.85rem; color: #ccc; }
+    .sensor-val { font-weight: bold; margin-right: 5px; }
+    .club-cell.inline-led { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+
+    /* נורות */
+    .led-indicator { width: 15px; height: 15px; border-radius: 50%; border: 1px solid #444; background: #222; }
+    .led-indicator.on { background: #0f0; box-shadow: 0 0 8px #0f0; border-color: #fff; }
+    .led-indicator.off { background: #f00; box-shadow: 0 0 5px #700; }
+    .led-indicator.unknown { background: #444; }
+
+    @media (max-width: 768px) {
+        .houses-grid { grid-template-columns: repeat(2, 1fr); }
+        .club-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+    }
+</style>
+
+{% block extra_js %}
+<script>
+function refreshPageData() {
+    fetch('/api/status/girls') // שים לב לנתיב המדויק ב-server_app.py
+        .then(res => res.json())
+        .then(data => {
+            for (const [key, val] of Object.entries(data)) {
+                const el = document.getElementById('stat_' + key);
+                if (el) {
+                    // עדכון קלאסים לפי ה-CSS שלך (on/off/unknown)
+                    el.className = 'led-indicator ' + val.toLowerCase();
+                    
+                    // אם זה טקסט (חיישן)
+                    if (el.classList.contains('sensor-val')) {
+                        el.innerText = (val === 'ON') ? 'פעיל' : 'מנוטרל';
+                    }
+                }
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    refreshPageData();
+    setInterval(refreshPageData, 5000); // עדכון כל 5 שניות
+});
+</script>
+{% endblock %}
+{% endblock %}

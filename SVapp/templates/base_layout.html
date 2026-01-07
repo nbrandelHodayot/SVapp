@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}SmartV{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .eli-connected { 
+            border: 2px solid #28a745 !important; 
+            color: #28a745 !important; 
+            background-color: rgba(40, 167, 69, 0.1) !important;
+            font-weight: bold; 
+        }
+        .no-access { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="header-main">
+            <div>הודיות - מערכת כפר חכם</div>
+            <div id="system-time">טוען...</div>
+            <div>מחשבי אנוש</div>
+        </header>
+
+        <nav class="header-sub">
+            <div class="nav-group-right">
+                {% if request.path != '/' and request.path != '/index.html' %}
+                <button class="header-button-small" onclick="handleGlobalBack()">חזרה</button>
+                {% endif %}
+            </div>
+            <div class="nav-group-left">
+                <button id="user-login-btn" class="header-button-small" onclick="handleManualLogin()">USER</button>
+            </div>
+        </nav>
+
+        <main class="main-content-area">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="status-footer" id="status-message">מוכן</footer>
+    </div>
+
+    <script>
+        // פונקציית ניווט בסיסית שדף הבית (index.html) צריך
+        async function navigateTo(path, action) {
+            const footer = document.getElementById('status-message');
+            if (footer) footer.innerText = "טוען " + action + "...";
+            try {
+                await fetch('/control?action=' + encodeURIComponent(action));
+                setTimeout(() => { window.location.href = path; }, 500);
+            } catch (e) { window.location.href = path; }
+        }
+
+        // פונקציית חזרה גלובלית
+    // פונקציית חזרה גלובלית ששולחת פקודה לבקר
+    async function handleGlobalBack() {
+        // אם אנחנו בדף סטטוס, נשתמש ב-Context שלו
+        if (typeof syncAndNavigate === "function") {
+            await syncAndNavigate('/');
+        } else {
+            // אם אנחנו בדף רגיל, פשוט נחזור לבית
+            window.location.href = '/';
+        }
+    }
+
+    function updateLoginStatus() {
+        fetch('/api/check_eli')
+            .then(res => res.json())
+            .then(data => {
+                const btn = document.getElementById('user-login-btn');
+                if (!btn) return;
+                
+                // התיקון: בדיקה גמישה של סטטוס ההתחברות
+                const isConnected = (data.status === "success" || data.connected === true);
+                
+                if (isConnected) {
+                    btn.innerText = "Eli";
+                    btn.classList.add('eli-connected');
+                    // פתיחת כפתורים חסומים
+                    document.querySelectorAll('.no-access').forEach(el => el.classList.remove('no-access'));
+                } else {
+                    btn.innerText = "USER";
+                    btn.classList.remove('eli-connected');
+                }
+            }).catch(e => console.error("Check login failed"));
+    }
+
+    // הפעלה אוטומטית
+    document.addEventListener('DOMContentLoaded', () => {
+        updateLoginStatus();
+        setInterval(updateLoginStatus, 10000); 
+    });
+
+<button class="header-button-small" onclick="handleGlobalBack()">חזרה</button>
+
+
+        async function handleManualLogin() {
+            const footer = document.getElementById('status-message');
+            if (footer) footer.innerText = "שולח בקשת כניסה...";
+            await fetch('/control?action=LOGIN');
+            setTimeout(updateLoginStatus, 2000);
+        }
+
+        // עדכון זמן מהשרת
+        function updateClock() {
+            fetch('/api/check_eli') // או אנדפוינט ייעודי לזמן אם יש
+                .then(res => res.json())
+                .then(data => {
+                    if (data.server_time) document.getElementById('system-time').innerText = data.server_time;
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLoginStatus();
+            setInterval(updateLoginStatus, 10000);
+            setInterval(updateClock, 30000);
+        });
+    </script>
+</body>
+</html>

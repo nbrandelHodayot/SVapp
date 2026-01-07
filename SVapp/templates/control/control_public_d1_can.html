@@ -1,0 +1,122 @@
+{% extends "control/control_base.html" %}
+
+{% block control_content %}
+<div class="d1-container" dir="rtl">
+    
+    <div class="d1-tabs">
+        <button onclick="navD1('D1_MAIN')" class="active">שעות מגעני D1</button>
+        <button onclick="navD1('D1_CLUBS_BOYS')">מועדונים בנים</button>
+        <button onclick="navD1('D1_CLUBS_GIRLS')">מועדונים בנות</button>
+        <button onclick="navD1('D1_CLUBS_PUB')">מועדונים ציבורי</button>
+    </div>
+
+    <div class="section-card">
+        <h3>הגדרת שבת/חג (ביטול חיישן תנועה)</h3>
+        <div class="toggle-row">
+            <span>מצב נוכחי:</span>
+            <span id="shabbat-status-badge" class="badge">טוען...</span>
+            <button class="btn-toggle" onclick="sendCommand('D1_SHABBAT_TOGGLE')">החלף מצב</button>
+        </div>
+    </div>
+
+    <div class="manual-control-grid">
+        <div class="control-box">
+            <h4>שליטה ידנית מגעני D1</h4>
+            <div class="manual-row"><span>אזור בנים:</span>
+                <div><button class="btn-on" onclick="sendCommand('D1_BOYS_ON')">ON</button>
+                <button class="btn-off" onclick="sendCommand('D1_BOYS_OFF')">OFF</button></div>
+            </div>
+            <div class="manual-row"><span>אזור בנות:</span>
+                <div><button class="btn-on" onclick="sendCommand('D1_GIRLS_ON')">ON</button>
+                <button class="btn-off" onclick="sendCommand('D1_GIRLS_OFF')">OFF</button></div>
+            </div>
+            <div class="manual-row"><span>אזור ציבורי:</span>
+                <div><button class="btn-on" onclick="sendCommand('D1_PUB_ON')">ON</button>
+                <button class="btn-off" onclick="sendCommand('D1_PUB_OFF')">OFF</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-grid">
+        <div class="status-card"><h4 style="color: cyan;">אזור בנים</h4><table id="boys-table"></table></div>
+        <div class="status-card"><h4 style="color: #ffccff;">אזור בנות</h4><table id="girls-table"></table></div>
+        <div class="status-card"><h4>אזור ציבורי 1</h4><table id="public1-table"></table></div>
+        <div class="status-card"><h4>אזור ציבורי 2</h4><table id="public2-table"></table></div>
+    </div>
+</div>
+
+<style>
+    .d1-container { padding: 10px; background: #1a1a1a; color: white; }
+    .d1-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+    .d1-tabs button { flex: 1; padding: 8px; background: #333; color: white; border: 1px solid #444; cursor: pointer; }
+    .d1-tabs button.active { background: #007bff; }
+    .section-card, .control-box { background: #2d2d2d; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+    .manual-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px; background: #383838; border-radius: 5px; }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .status-card { background: #252525; padding: 10px; border-radius: 8px; font-size: 0.85em; }
+    
+    /* עיצוב הנורות והתגים - מה ששאלת בסעיף 4 */
+    .led { width: 12px; height: 12px; border-radius: 50%; display: inline-block; background: #444; border: 1px solid #000; margin-left: 3px; }
+    .led.on { background: #ff3600; box-shadow: 0 0 8px #ff3600; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .bg-success { background: #28a745; }
+    .bg-danger { background: #dc3545; }
+	
+	/* נורה במצב כבוי/אפור */
+	.led { background: #444; box-shadow: inset 0 0 3px #000; }
+
+	/* נורה במצב אדום */
+	.led.red { 
+		background: #ff3600; 
+		box-shadow: 0 0 10px #ff3600, inset 0 0 4px white; 
+	}
+
+	/* נורה במצב ירוק */
+	.led.green { 
+		background: #2ecc71; 
+		box-shadow: 0 0 10px #2ecc71, inset 0 0 4px white; 
+}
+</style>
+
+<script>
+    async function refreshD1Dashboard() {
+        try {
+            const response = await fetch('/api/status/public/control_d1');
+            const data = await response.json();
+
+            updateTable('boys-table', data.BOYS_HOUSES);
+            updateTable('girls-table', data.GIRLS_HOUSES);
+            updateTable('public1-table', data.PUBLIC_1);
+            updateTable('public2-table', data.PUBLIC_2);
+
+            updateToggleButton('shabbat-status-badge', data.SHABBAT_STATUS);
+        } catch (err) { console.error("Refresh failed", err); }
+    }
+
+	function updateTable(tableId, housesData) {
+		const table = document.getElementById(tableId);
+		if (!table || !housesData) return;
+		let html = '';
+		for (const [house, leds] of Object.entries(housesData)) {
+			html += `<tr><td>${house}</td>
+				<td>D1:<span class="led ${leds.D1.toLowerCase()}"></span></td>
+				<td>C1:<span class="led ${leds.C1.toLowerCase()}"></span></td>
+				${leds.C2 ? `<td>C2:<span class="led ${leds.C2.toLowerCase()}"></span></td>` : ''}
+			</tr>`;
+		}
+		table.innerHTML = html;
+	}
+    }
+
+    function updateToggleButton(id, status) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerText = status === 'ON' ? 'פעיל' : 'כבוי';
+            el.className = `badge ${status === 'ON' ? 'bg-success' : 'bg-danger'}`;
+        }
+    }
+
+    setInterval(refreshD1Dashboard, 2500);
+    refreshD1Dashboard();
+</script>
+{% endblock %}

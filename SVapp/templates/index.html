@@ -1,0 +1,100 @@
+{% extends "base_layout.html" %}
+
+{% block title %}0001 - תפריט ראשי{% endblock %}
+
+{% block page_name %}תפריט ראשי{% endblock %}
+
+{% block content %}
+<div class="main-menu-container">
+    <h2 style="text-align: center; color: var(--header-bg); margin-bottom: 30px; font-weight: 300; font-size: 2em;">
+        בחר אזור לניהול
+    </h2>
+
+    <div class="button-grid">
+        <button id="nav-status" class="action-button" onclick="navigateTo('/status_boys.html', 'NAV_STATUS')">
+            📊 סטטוס מערכות
+        </button>
+
+        <button id="nav-control" class="action-button" onclick="navigateTo('/nav_control.html', 'NAV_CONTROL')">
+            🕹️ בקרת אזורים
+        </button>
+
+        <button id="nav-settings" class="action-button" onclick="navigateTo('/nav_settings.html', 'NAV_SETTINGS')">
+            ⚙️ הגדרות מערכת
+        </button>
+    </div>
+</div>
+
+<style>
+    /* עיצוב לכפתורים חסומים כשאלי מנותק */
+    .action-button.disabled-link {
+        opacity: 0.4;
+        pointer-events: none; 
+        filter: grayscale(1);
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /**
+     * פונקציית Gatekeeper - נועלת/משחררת כפתורים לפי ה-Header
+     */
+    function syncNavigationWithEli() {
+        const userBtn = document.getElementById('user-login-btn');
+        const actionButtons = document.querySelectorAll('.action-button');
+        
+        if (!userBtn) return;
+
+        // אם הכפתור ב-Header מציג 'Eli' ויש לו את הקלאס הירוק
+        if (userBtn.classList.contains('eli-connected')) {
+            actionButtons.forEach(btn => btn.classList.remove('disabled-link'));
+        } else {
+            actionButtons.forEach(btn => btn.classList.add('disabled-link'));
+        }
+    }
+
+    // הפעלה וסנכרון
+    document.addEventListener('DOMContentLoaded', () => {
+        syncNavigationWithEli();
+        // בדיקה כל 2 שניות אם הסטטוס ב-Header השתנה
+        setInterval(syncNavigationWithEli, 2000);
+    });
+
+    /*******************************************************
+     * טיפול ב-Timeout וחזרה לבקר
+     * ה-base_layout כבר מכיל לוגיקת חוסר פעילות.
+     * כיוון שאנחנו בדף הבית (back_action=MAIN), ה-layout ישלח 
+     * פקודת 'BACK_MAIN' לבקר לאחר 5 דקות.
+     *******************************************************/
+</script>
+
+<script>
+    function syncNavigationWithEli() {
+        const userBtn = document.getElementById('user-login-btn');
+        // נבחר רק את הכפתורים שדורשים חסימה לפי ה-ID שלהם
+        const controlBtn = document.getElementById('nav-control');
+        const settingsBtn = document.getElementById('nav-settings');
+        
+        if (!userBtn || !controlBtn || !settingsBtn) return;
+
+        // בדיקה אם המשתמש Eli מחובר
+        const isConnected = userBtn.classList.contains('eli-connected');
+
+        if (isConnected) {
+            controlBtn.classList.remove('disabled-link');
+            settingsBtn.classList.remove('disabled-link');
+        } else {
+            controlBtn.classList.add('disabled-link');
+            settingsBtn.classList.add('disabled-link');
+        }
+        // כפתור nav-status לא נמצא ברשימה ולכן יישאר תמיד פעיל
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        syncNavigationWithEli();
+        setInterval(syncNavigationWithEli, 2000); // בדיקה כל 2 שניות
+    });
+</script>
+{% endblock %}

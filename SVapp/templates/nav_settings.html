@@ -1,0 +1,52 @@
+{% extends "base_layout.html" %}
+
+{% block title %}0010 - הגדרות מערכת{% endblock %}
+
+{% block page_name %}הגדרות מערכת{% endblock %}
+
+{% block back_url %}/{% endblock %}
+{% block back_action %}SETTINGS{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    
+    <div class="info-panel" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="margin: 0; color: var(--header-bg);">ניהול פרמטרים ואיפוס (Context: 0100)</h3>
+    </div>
+
+    <div class="button-grid">
+        <button class="action-button" onclick="handleButtonClick('TIME_DATE')">
+            📅 הגדרת זמן ותאריך
+        </button>
+
+        <button class="action-button" onclick="handleButtonClick('RESET_CONTROLLER')">
+            🔄 איפוס בקר ראשי
+        </button>
+
+        <button class="action-button" onclick="handleButtonClick('NETWORK_CONFIG')">
+            🌐 הגדרות רשת
+        </button>
+
+        <button class="action-button" onclick="handleButtonClick('IPUS_8006_A')">
+            ⚠️ איפוס בקר קצה A
+        </button>
+
+        <button class="action-button" onclick="handleButtonClick('IPUS_8006_B')">
+            ⚠️ איפוס בקר קצה B
+        </button>
+    </div>
+
+    <div style="margin-top: 40px; padding: 15px; background: #f9f9f9; border: 1px dashed #ccc; font-size: 0.9em;">
+        <strong>מידע מערכת:</strong><br>
+        גרסת תוכנה: 1.0.4 <br>
+        כתובת IP בקר: 192.168.1.234
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // לוגיקה ספציפית להגדרות (למשל התראות לפני איפוס)
+    console.log("דף הגדרות נטען");
+</script>
+{% endblock %}
