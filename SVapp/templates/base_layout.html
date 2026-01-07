@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <title>{% block title %}SmartV{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-<style>
-    /* זה הקלאס שקובע אם הכפתור לחיץ או לא */
-    .disabled-link { 
-        opacity: 0.4 !important; 
-        pointer-events: none !important; /* זה מה שמונע את הלחיצה */
-        filter: grayscale(1);
-        cursor: not-allowed;
-    }
+    <style>
+        /* הגדרות גלובליות לכפתורים חסומים */
+        .disabled-link { 
+            opacity: 0.4 !important; 
+            pointer-events: none !important; 
+            filter: grayscale(1);
+            cursor: not-allowed;
+        }
 
-    .eli-connected { 
-        border: 2px solid #28a745 !important; 
-        color: #28a745 !important; 
-        background-color: rgba(40, 167, 69, 0.1) !important;
-        font-weight: bold; 
-    }
-</style>
+        .eli-connected { 
+            border: 2px solid #28a745 !important; 
+            color: #28a745 !important; 
+            background-color: rgba(40, 167, 69, 0.1) !important;
+            font-weight: bold; 
+        }
+    </style>
 </head>
 
 <body>
@@ -46,88 +46,126 @@
         </main>
 
         <footer class="status-footer" id="status-message">מוכן</footer>
+        
+        {# Hidden inputs לניווט חזרה - משמשים את handleGlobalBack #}
+        <input type="hidden" id="nav-back-url" value="{% block back_url %}/{% endblock %}">
+        <input type="hidden" id="nav-back-action" value="{% block back_action %}{% endblock %}">
     </div>
 
+    <!-- טעינת app.js עם כל הפונקציות הגלובליות (handleButtonClick, navigateTo וכו') -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
     <script>
-        // פונקציית ניווט בסיסית שדף הבית (index.html) צריך
-		async function navigateTo(path, action) {
-			console.log("Navigating to:", path, "with action:", action);
-			const footer = document.getElementById('status-message');
-			if (footer) footer.innerText = "טוען " + action + "...";
+        /**
+         * פונקציית ניווט בסיסית - שולחת פקודה לבקר ועוברת דף
+         * הערה: app.js מגדיר window.navigateTo עם לוגיקה מתקדמת יותר
+         * אם window.navigateTo קיים, נשתמש בו. אחרת נשתמש בהגדרה המקומית הזו
+         */
+        if (typeof window.navigateTo === 'undefined') {
+            window.navigateTo = async function(path, action) {
+                console.log("Navigating to:", path, "with action:", action);
+                const footer = document.getElementById('status-message');
+                if (footer) footer.innerText = "טוען " + action + "...";
 
-			// נסיון שליחת פקודה לבקר (לא מחכים לה לנצח)
-			fetch('/control?action=' + encodeURIComponent(action)).catch(e => console.log("Control fetch failed, moving anyway"));
+                // שליחת הפקודה ב-Background (לא מחכים לה כדי לא לתקוע את המשתמש)
+                fetch('/control?action=' + encodeURIComponent(action)).catch(e => console.error("Action failed:", e));
 
-			// מעבר דף אחרי השהיה קצרה מאוד כדי לא לתקוע את המשתמש
-			setTimeout(() => { 
-				window.location.href = path; 
-			}, 300);
-		}
-
-        // פונקציית חזרה גלובלית
-    // פונקציית חזרה גלובלית ששולחת פקודה לבקר
-    async function handleGlobalBack() {
-        // אם אנחנו בדף סטטוס, נשתמש ב-Context שלו
-        if (typeof syncAndNavigate === "function") {
-            await syncAndNavigate('/');
-        } else {
-            // אם אנחנו בדף רגיל, פשוט נחזור לבית
-            window.location.href = '/';
+                setTimeout(() => { 
+                    window.location.href = path; 
+                }, 300);
+            };
         }
-    }
 
-    function updateLoginStatus() {
-        fetch('/api/check_eli')
-            .then(res => res.json())
-            .then(data => {
-                const btn = document.getElementById('user-login-btn');
-                if (!btn) return;
+        /**
+         * פונקציית חזרה גלובלית
+         * משתמשת ב-back_url ו-back_action מהתבנית
+         */
+        async function handleGlobalBack() {
+            const urlElement = document.getElementById('nav-back-url');
+            const actionElement = document.getElementById('nav-back-action');
+            
+            // אם דף הסטטוס הגדיר פונקציית סנכרון מיוחדת, נשתמש בה
+            if (typeof syncAndNavigate === "function") {
+                const targetUrl = urlElement ? urlElement.value.trim() : '/';
+                await syncAndNavigate(targetUrl);
+                return;
+            }
+            
+            // שימוש ב-back_url ו-back_action מהתבנית
+            const targetUrl = urlElement ? urlElement.value.trim() : '/';
+            const backAction = actionElement ? actionElement.value.trim() : '';
+            
+            // אם יש פעולת חזרה מוגדרת, נשלח אותה לבקר
+            if (backAction) {
+                const footer = document.getElementById('status-message');
+                if (footer) footer.innerText = "חוזר...";
                 
-                // התיקון: בדיקה גמישה של סטטוס ההתחברות
-                const isConnected = (data.status === "success" || data.connected === true);
-                
-                if (isConnected) {
-                    btn.innerText = "Eli";
-                    btn.classList.add('eli-connected');
-                    // פתיחת כפתורים חסומים
-                    document.querySelectorAll('.no-access').forEach(el => el.classList.remove('no-access'));
-                } else {
-                    btn.innerText = "USER";
-                    btn.classList.remove('eli-connected');
+                try {
+                    // שליחת פקודת BACK אם היא מתחילה ב-BACK_, אחרת שליחת הפעולה ישירות
+                    const actionToSend = backAction.startsWith('BACK_') ? backAction : `BACK_${backAction}`;
+                    await fetch('/control?action=' + encodeURIComponent(actionToSend));
+                } catch (e) {
+                    console.error("Back action failed:", e);
                 }
-            }).catch(e => console.error("Check login failed"));
-    }
+            }
+            
+            // ניווט לדף היעד
+            setTimeout(() => {
+                window.location.href = targetUrl;
+            }, backAction ? 600 : 0);
+        }
 
-    // הפעלה אוטומטית
-    document.addEventListener('DOMContentLoaded', () => {
-        updateLoginStatus();
-        setInterval(updateLoginStatus, 10000); 
-    });
+        /**
+         * בדיקת סטטוס חיבור Eli מהשרת ועדכון ה-UI
+         */
+        function updateLoginStatus() {
+            fetch('/api/check_eli')
+                .then(res => res.json())
+                .then(data => {
+                    const btn = document.getElementById('user-login-btn');
+                    if (!btn) return;
+                    
+                    const isConnected = (data.status === "success" || data.connected === true);
+                    
+                    if (isConnected) {
+                        btn.innerText = "Eli";
+                        btn.classList.add('eli-connected');
+                        // שחרור גלובלי של אלמנטים חסומים (אם יש כאלו ב-Layout)
+                        document.querySelectorAll('.disabled-link.global-lock').forEach(el => el.classList.remove('disabled-link'));
+                    } else {
+                        btn.innerText = "USER";
+                        btn.classList.remove('eli-connected');
+                    }
 
-<button class="header-button-small" onclick="handleGlobalBack()">חזרה</button>
+                    if (data.server_time) {
+                        document.getElementById('system-time').innerText = data.server_time;
+                    }
+                })
+                .catch(e => console.error("Update status failed"));
+        }
 
-
+        /**
+         * שליחת בקשת LOGIN ידנית בלחיצה על כפתור USER
+         */
         async function handleManualLogin() {
             const footer = document.getElementById('status-message');
             if (footer) footer.innerText = "שולח בקשת כניסה...";
-            await fetch('/control?action=LOGIN');
-            setTimeout(updateLoginStatus, 2000);
+            try {
+                await fetch('/control?action=LOGIN');
+                setTimeout(updateLoginStatus, 1500);
+            } catch (e) {
+                console.error("Login request failed");
+            }
         }
 
-        // עדכון זמן מהשרת
-        function updateClock() {
-            fetch('/api/check_eli') // או אנדפוינט ייעודי לזמן אם יש
-                .then(res => res.json())
-                .then(data => {
-                    if (data.server_time) document.getElementById('system-time').innerText = data.server_time;
-                });
-        }
-
+        // הפעלת טיימרים ואירועים בטעינת הדף
         document.addEventListener('DOMContentLoaded', () => {
             updateLoginStatus();
-            setInterval(updateLoginStatus, 10000);
-            setInterval(updateClock, 30000);
+            // עדכון סטטוס כל 10 שניות
+            setInterval(updateLoginStatus, 10000); 
         });
     </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

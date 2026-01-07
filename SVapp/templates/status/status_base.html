@@ -15,12 +15,27 @@
 <script>
     const currentCtx = document.getElementById('context-holder').innerText.trim();
 
-    async function handleButtonClick(tabAction, targetUrl) {
-        const fullAction = currentCtx + "/" + tabAction;
-        try {
-            await fetch('/control?action=' + encodeURIComponent(fullAction));
-            window.location.href = targetUrl;
-        } catch (e) { window.location.href = targetUrl; }
+    // שימוש בפונקציה הגלובלית handleButtonClick מ-app.js עם currentCtx כפרמטר שלישי
+    // אם הפונקציה הגלובלית קיימת, נעטוף אותה כדי להוסיף את currentCtx
+    if (typeof handleButtonClick !== 'undefined') {
+        const originalHandleButtonClick = handleButtonClick;
+        window.handleButtonClick = async function(tabAction, targetUrl) {
+            // אם יש currentCtx, נשתמש בו כפרמטר שלישי
+            if (currentCtx) {
+                return await originalHandleButtonClick(tabAction, targetUrl, currentCtx);
+            } else {
+                return await originalHandleButtonClick(tabAction, targetUrl);
+            }
+        };
+    } else {
+        // גיבוי: אם הפונקציה הגלובלית לא נטענה, נשתמש בהגדרה מקומית
+        async function handleButtonClick(tabAction, targetUrl) {
+            const fullAction = currentCtx + "/" + tabAction;
+            try {
+                await fetch('/control?action=' + encodeURIComponent(fullAction));
+                window.location.href = targetUrl;
+            } catch (e) { window.location.href = targetUrl; }
+        }
     }
 
     // פונקציית החזרה הקריטית שחיפשת

@@ -79,6 +79,42 @@
 </style>
 
 <script>
+    /**
+     * פונקציה לניווט בין טאבים בדף D1
+     */
+    function navD1(tabAction) {
+        // שליחת פקודה לבקר
+        fetch('/control?action=' + encodeURIComponent(tabAction)).catch(e => console.error("Tab action failed:", e));
+        
+        // עדכון מצב הטאבים הפעילים
+        document.querySelectorAll('.d1-tabs button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    /**
+     * פונקציה לשליחת פקודות בקרה
+     */
+    async function sendCommand(action) {
+        const footer = document.getElementById('status-message');
+        if (footer) footer.innerText = "שולח פקודה: " + action + "...";
+        
+        try {
+            const response = await fetch('/control?action=' + encodeURIComponent(action));
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                if (footer) footer.innerText = "בוצע בהצלחה";
+                // רענון המידע לאחר פעולה
+                setTimeout(refreshD1Dashboard, 600);
+            } else {
+                if (footer) footer.innerText = "שגיאה: " + (data.message || "לא ידוע");
+            }
+        } catch (error) {
+            console.error("Command Error:", error);
+            if (footer) footer.innerText = "שגיאת תקשורת";
+        }
+    }
+
     async function refreshD1Dashboard() {
         try {
             const response = await fetch('/api/status/public/control_d1');

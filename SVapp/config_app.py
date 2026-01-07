@@ -1,12 +1,12 @@
-# config.py
+# config_app.py
 import socket
-# אם שם המחשב הוא השם של המחשב בבית (Hod2301-07), תהיה בסימולציה.
-# בכל מחשב אחר (כמו המחשב שליד הבקר), תעבוד במצב אמת.
-COMPUTER_NAME = socket.gethostname()
-SIMULATION_MODE = (COMPUTER_NAME == "Hod2301-07") 
 
-# הערה: אם למחשב ליד הבקר יש שם אחר, הקוד יזהה שזה לא "Hod2301-07" 
-# ויעבור אוטומטית ל-SIMULATION_MODE = False.
+COMPUTER_NAME = socket.gethostname().upper() # הופך הכל לאותיות גדולות למניעת טעויות
+# בדיקה גמישה יותר - אם השם מכיל את המחרוזת או שווה לה
+SIMULATION_MODE = ("HOD2301-07" in COMPUTER_NAME) 
+
+print(f"DEBUG: Computer Name is {COMPUTER_NAME}")
+print(f"DEBUG: Simulation Mode is {SIMULATION_MODE}")
 
 # --- הגדרות חיבור לבקר ---
 REMOTE_IP = "192.168.1.234"

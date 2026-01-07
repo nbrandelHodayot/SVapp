@@ -1,4 +1,4 @@
-{% extends "control_base.html" %}
+{% extends "control/control_base.html" %}
 
 {# קביעת הלשונית הנבחרת והגדרת שמות לתצוגה #}
 {% set current_tab = request.args.get('tab', 'AC1') %}
@@ -167,4 +167,38 @@
     }
 
     .shabbat-toggle-btn:active {
-        transform: scale(0.95
+        transform: scale(0.95);
+        background: #333;
+    }
+
+    .timer-footer-note {
+        font-size: 0.75rem;
+        color: #555;
+        width: 100px;
+        text-align: left;
+    }
+
+    /* התאמה למובייל */
+    @media (max-width: 600px) {
+        .timer-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .timer-actions { width: 100%; text-align: center; }
+        .shabbat-toggle-btn { max-width: 100%; }
+        .timer-footer-note { width: 100%; text-align: right; margin-top: 5px; }
+    }
+</style>
+
+<script>
+    /**
+     * עדכון סטטוס השעונים מהבקר
+     * הפונקציה נקראת אוטומטית ע"י control_base
+     */
+    function refreshControlStatus() {
+        // אנחנו שולחים את ההקשר הנוכחי (למשל GIRLS_SHABBAT_AC1) ל-API
+        // כדי לקבל את המצב של 4 השעונים ששייכים ללשונית הזו
+        updateControlIndicators('/api/status/shabbat?context={{ active_ctx }}');
+    }
+</script>
+{% endblock %}

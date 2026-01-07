@@ -103,30 +103,6 @@ def status_public():
 def status_shabbat():
     return render_template('status/status_shabbat.html')
 
-@app.route('/<path:page_name>')
-@login_required
-def serve_html_pages(page_name):
-    # אם המשתמש הקיש שם דף ללא .html בסוף, נוסיף אותו
-    if not page_name.endswith('.html'):
-        page_name += '.html'
-    
-    # רשימת התיקיות לחיפוש לפי ה-tree.txt שלך
-    search_locations = [
-        page_name,                   # בתיקיית templates הראשית
-        f"status/{page_name}",       # בתיקיית status
-        f"control/{page_name}"       # בתיקיית control
-    ]
-    
-    for location in search_locations:
-        # בדיקה אם הקובץ פיזית קיים בתיקייה
-        full_path = os.path.join(app.template_folder, location)
-        if os.path.exists(full_path):
-            logger.info(f"Serving page: {location}")
-            return render_template(location)
-    
-    logger.error(f"Page not found: {page_name}")
-    return f"הדף {page_name} לא נמצא במערכת", 404
-
 # =========================================================================
 # 4. ליבת השליטה (Control Hub)
 # =========================================================================
@@ -345,22 +321,52 @@ PROTECTED_ROUTES = [
     'nav_control', 
     'settings'
 ]
-
+#חסימת ניווט אם משתמש לא מחובר
 @app.before_request
 def block_navigation_if_not_connected():
-    # רשימת דפים שדורשים חיבור פיזי
-    PROTECTED_ROUTES = ['nav_control', 'settings', 'boys_status', 'girls_status', 'public_status']
-    
-    # אם אנחנו במצב סימולציה, אנחנו לא חוסמים כלום
+    # 1. אם אנחנו בסימולציה - אין חסימות
     if getattr(config, 'SIMULATION_MODE', False):
         return None
 
-    # בודק אם הבקשה היא לאחד הדפים המוגנים
-    if request.endpoint in PROTECTED_ROUTES:
-        if not plc_core.is_eli_physically_connected():
-            flash("הגישה נחסמה: הבקר אינו מזהה חיבור פיזי. (עבור למצב סימולציה ב-Config כדי לעקוף)", "danger")
-            return redirect(url_for('index'))
+    # 2. רשימת דפים שדורשים חיבור (הורדתי את הסטטוסים כדי שתוכל לראות אותם תמיד)
+    PROTECTED_ROUTES = ['nav_control', 'nav_settings']
+    
+    # בודק אם ה-endpoint הנוכחי הוא 'serve_html_pages' (כי זה מה שאתה משתמש בו)
+    if request.endpoint == 'serve_html_pages':
+        page_name = request.view_args.get('page_name', '')
+        # אם מנסים להיכנס לדף בקרה או הגדרות בלי חיבור פיזי
+        if any(protected in page_name for protected in PROTECTED_ROUTES):
+            if not plc_core.is_eli_physically_connected():
+                # במקום לחסום לגמרי, רק נדפיס אזהרה ללוג בינתיים
+                logger.warning(f"Access to {page_name} without Eli connection!")
+                # אם אתה רוצה לחסום ממש, תחזיר את ה-return redirect הבא:
+                # return redirect(url_for('serve_html_pages', page_name='index.html'))
+    
+    return None
 
+@app.route('/<path:page_name>')
+@login_required
+def serve_html_pages(page_name):
+    # אם המשתמש הקיש שם דף ללא .html בסוף, נוסיף אותו
+    if not page_name.endswith('.html'):
+        page_name += '.html'
+    
+    # רשימת התיקיות לחיפוש לפי ה-tree.txt שלך
+    search_locations = [
+        page_name,                   # בתיקיית templates הראשית
+        f"status/{page_name}",       # בתיקיית status
+        f"control/{page_name}"       # בתיקיית control
+    ]
+    
+    for location in search_locations:
+        # בדיקה אם הקובץ פיזית קיים בתיקייה
+        full_path = os.path.join(app.template_folder, location)
+        if os.path.exists(full_path):
+            logger.info(f"Serving page: {location}")
+            return render_template(location)
+    
+    logger.error(f"Page not found: {page_name}")
+    return f"הדף {page_name} לא נמצא במערכת", 404
 
 
 # =========================================================================

@@ -1,4 +1,4 @@
-{% extends "control_base.html" %}
+{% extends "control/control_base.html" %}
 
 {% block title %}אזור בנות - פירוט מבנים (1-10){% endblock %}
 {% block page_name %}אזור בנות - חלק א' (1-10){% endblock %}
@@ -103,3 +103,70 @@
         background: #0f0f0f;
         border: 1px solid #333;
         border-radius: 12px;
+        padding: 25px 15px 15px;
+        position: relative;
+        width: 100%;
+        max-width: 380px;
+    }
+
+    .card-title-label {
+        position: absolute;
+        top: -14px;
+        right: 20px;
+        background: #ffcc00;
+        color: #000;
+        padding: 2px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+
+    .device-row {
+        display: flex;
+        align-items: center;
+        background: #1a1a1a;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+    }
+
+    .device-name { flex: 1; text-align: right; color: #ddd; font-size: 0.85rem; }
+
+    .status-indicator {
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        margin: 0 15px;
+        background: #333;
+        border: 1px solid #444;
+    }
+    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
+
+    .button-pair { display: flex; gap: 8px; }
+    
+    .btn-hmi {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
+    .btn-on { background: #28a745; color: white; }
+    .btn-off { background: #dc3545; color: white; }
+
+    @media (max-width: 600px) {
+        .buildings-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<script>
+    /**
+     * עדכון סטטוס מהבקר
+     * משתמש ב-API של בקרת הבנות
+     */
+    function refreshControlStatus() {
+        updateControlIndicators('/api/status/girls_control', 'stat_C_G_S_');
+    }
+</script>
+{% endblock %}
