@@ -4,16 +4,24 @@
     <meta charset="UTF-8">
     <title>{% block title %}SmartV{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .eli-connected { 
-            border: 2px solid #28a745 !important; 
-            color: #28a745 !important; 
-            background-color: rgba(40, 167, 69, 0.1) !important;
-            font-weight: bold; 
-        }
-        .no-access { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
-    </style>
+<style>
+    /* זה הקלאס שקובע אם הכפתור לחיץ או לא */
+    .disabled-link { 
+        opacity: 0.4 !important; 
+        pointer-events: none !important; /* זה מה שמונע את הלחיצה */
+        filter: grayscale(1);
+        cursor: not-allowed;
+    }
+
+    .eli-connected { 
+        border: 2px solid #28a745 !important; 
+        color: #28a745 !important; 
+        background-color: rgba(40, 167, 69, 0.1) !important;
+        font-weight: bold; 
+    }
+</style>
 </head>
+
 <body>
     <div class="page-wrapper">
         <header class="header-main">
@@ -42,14 +50,19 @@
 
     <script>
         // פונקציית ניווט בסיסית שדף הבית (index.html) צריך
-        async function navigateTo(path, action) {
-            const footer = document.getElementById('status-message');
-            if (footer) footer.innerText = "טוען " + action + "...";
-            try {
-                await fetch('/control?action=' + encodeURIComponent(action));
-                setTimeout(() => { window.location.href = path; }, 500);
-            } catch (e) { window.location.href = path; }
-        }
+		async function navigateTo(path, action) {
+			console.log("Navigating to:", path, "with action:", action);
+			const footer = document.getElementById('status-message');
+			if (footer) footer.innerText = "טוען " + action + "...";
+
+			// נסיון שליחת פקודה לבקר (לא מחכים לה לנצח)
+			fetch('/control?action=' + encodeURIComponent(action)).catch(e => console.log("Control fetch failed, moving anyway"));
+
+			// מעבר דף אחרי השהיה קצרה מאוד כדי לא לתקוע את המשתמש
+			setTimeout(() => { 
+				window.location.href = path; 
+			}, 300);
+		}
 
         // פונקציית חזרה גלובלית
     // פונקציית חזרה גלובלית ששולחת פקודה לבקר

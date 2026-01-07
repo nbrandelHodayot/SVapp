@@ -38,63 +38,34 @@
 
 {% block extra_js %}
 <script>
-    /**
-     * פונקציית Gatekeeper - נועלת/משחררת כפתורים לפי ה-Header
-     */
     function syncNavigationWithEli() {
         const userBtn = document.getElementById('user-login-btn');
-        const actionButtons = document.querySelectorAll('.action-button');
+        // נבחר את כל הכפתורים שיש להם ID שמתחיל ב-nav-
+        const navButtons = {
+            status: document.getElementById('nav-status'),
+            control: document.getElementById('nav-control'),
+            settings: document.getElementById('nav-settings')
+        };
         
         if (!userBtn) return;
 
-        // אם הכפתור ב-Header מציג 'Eli' ויש לו את הקלאס הירוק
-        if (userBtn.classList.contains('eli-connected')) {
-            actionButtons.forEach(btn => btn.classList.remove('disabled-link'));
-        } else {
-            actionButtons.forEach(btn => btn.classList.add('disabled-link'));
-        }
-    }
-
-    // הפעלה וסנכרון
-    document.addEventListener('DOMContentLoaded', () => {
-        syncNavigationWithEli();
-        // בדיקה כל 2 שניות אם הסטטוס ב-Header השתנה
-        setInterval(syncNavigationWithEli, 2000);
-    });
-
-    /*******************************************************
-     * טיפול ב-Timeout וחזרה לבקר
-     * ה-base_layout כבר מכיל לוגיקת חוסר פעילות.
-     * כיוון שאנחנו בדף הבית (back_action=MAIN), ה-layout ישלח 
-     * פקודת 'BACK_MAIN' לבקר לאחר 5 דקות.
-     *******************************************************/
-</script>
-
-<script>
-    function syncNavigationWithEli() {
-        const userBtn = document.getElementById('user-login-btn');
-        // נבחר רק את הכפתורים שדורשים חסימה לפי ה-ID שלהם
-        const controlBtn = document.getElementById('nav-control');
-        const settingsBtn = document.getElementById('nav-settings');
-        
-        if (!userBtn || !controlBtn || !settingsBtn) return;
-
-        // בדיקה אם המשתמש Eli מחובר
         const isConnected = userBtn.classList.contains('eli-connected');
+        console.log("Checking connection... Eli connected:", isConnected);
 
         if (isConnected) {
-            controlBtn.classList.remove('disabled-link');
-            settingsBtn.classList.remove('disabled-link');
+            // אם מחובר - משחררים הכל
+            if (navButtons.control) navButtons.control.classList.remove('disabled-link');
+            if (navButtons.settings) navButtons.settings.classList.remove('disabled-link');
         } else {
-            controlBtn.classList.add('disabled-link');
-            settingsBtn.classList.add('disabled-link');
+            // אם מנותק - נועלים רק את שליטה והגדרות (סטטוס תמיד פתוח)
+            if (navButtons.control) navButtons.control.classList.add('disabled-link');
+            if (navButtons.settings) navButtons.settings.classList.add('disabled-link');
         }
-        // כפתור nav-status לא נמצא ברשימה ולכן יישאר תמיד פעיל
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         syncNavigationWithEli();
-        setInterval(syncNavigationWithEli, 2000); // בדיקה כל 2 שניות
+        setInterval(syncNavigationWithEli, 2000); 
     });
 </script>
 {% endblock %}

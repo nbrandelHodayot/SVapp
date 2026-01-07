@@ -103,19 +103,29 @@ def status_public():
 def status_shabbat():
     return render_template('status/status_shabbat.html')
 
-@app.route('/<page_name>.html')
+@app.route('/<path:page_name>')
 @login_required
 def serve_html_pages(page_name):
-    # רשימת התיקיות שבהן יש לחפש קבצי HTML לפי ה-tree.txt שלך
-    folders = ['', 'status', 'control']
+    # אם המשתמש הקיש שם דף ללא .html בסוף, נוסיף אותו
+    if not page_name.endswith('.html'):
+        page_name += '.html'
     
-    for folder in folders:
-        # בניה של הנתיב היחסי (למשל: status/status_boys.html)
-        template_path = os.path.join(folder, f"{page_name}.html").replace('\\', '/')
-        if os.path.exists(os.path.join(app.template_folder, template_path)):
-            return render_template(template_path)
+    # רשימת התיקיות לחיפוש לפי ה-tree.txt שלך
+    search_locations = [
+        page_name,                   # בתיקיית templates הראשית
+        f"status/{page_name}",       # בתיקיית status
+        f"control/{page_name}"       # בתיקיית control
+    ]
     
-    return f"Page {page_name}.html not found", 404
+    for location in search_locations:
+        # בדיקה אם הקובץ פיזית קיים בתיקייה
+        full_path = os.path.join(app.template_folder, location)
+        if os.path.exists(full_path):
+            logger.info(f"Serving page: {location}")
+            return render_template(location)
+    
+    logger.error(f"Page not found: {page_name}")
+    return f"הדף {page_name} לא נמצא במערכת", 404
 
 # =========================================================================
 # 4. ליבת השליטה (Control Hub)
