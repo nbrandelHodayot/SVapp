@@ -20,6 +20,10 @@
             font-weight: bold; 
         }
     </style>
+		<script>
+			var timeout = {{ config.INACTIVITY_TIMEOUT or 300 }};
+		</script>
+
 </head>
 
 <body>
@@ -52,9 +56,6 @@
         <input type="hidden" id="nav-back-action" value="{% block back_action %}{% endblock %}">
     </div>
 
-    <!-- טעינת app.js עם כל הפונקציות הגלובליות (handleButtonClick, navigateTo וכו') -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    
     <script>
         /**
          * פונקציית ניווט בסיסית - שולחת פקודה לבקר ועוברת דף
@@ -165,6 +166,13 @@
             setInterval(updateLoginStatus, 10000); 
         });
     </script>
+
+
+    <!-- טעינת app.js עם כל הפונקציות הגלובליות (handleButtonClick, navigateTo וכו') -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+		<script src="{{ url_for('static', filename='js/app.js') }}"></script>    
+
 
     {% block extra_js %}{% endblock %}
 </body>

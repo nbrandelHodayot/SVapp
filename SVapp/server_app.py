@@ -1,33 +1,54 @@
-#server_app.py
+# server_app.py
 import plc_core
 import os
 import logging
 import threading
 import time
 import datetime
+
 from datetime import timedelta
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session, flash
 from flask_cors import CORS
+from flask_socketio import SocketIO
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # ייבוא הגדרות ולוגיקה מקבצים חיצוניים
 import config_app as config
 from auth_logic import verify_app_user
-from plc_core import send_physical_click, fetch_plc_status
-
+from plc_core import send_physical_click, fetch_plc_status, send_physical_click_by_action, N_TO_PAGE_NAME
 # =========================================================================
-# 1. הגדרות שרת וסשן
+# 1. הגדרות שרת, סשן ולוגים
 # =========================================================================
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 CORS(app)
 
-# הגדרת לוגים
+# הגדרת לוגים מפורטת
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# הגדרת SocketIO עם תמיכה ב-CORS ו-eventlet
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+
+# משתנים גלובליים לניהול מצב לוגין
+login_lock = threading.Lock()
+is_login_running = False
+
+def check_plc_status():
+    """פונקציית סנכרון: בודקת איפה הבקר נמצא ומעדכנת את הדפדפן"""
+    try:
+        n_value = plc_core.get_screen_n_by_pixel_check() 
+        if n_value:
+            page_name = N_TO_PAGE_NAME.get(n_value)
+            if page_name:
+                logger.info(f"Sync: PLC is on page {n_value} ({page_name}). Sending force_navigate.")
+                socketio.emit('force_navigate', {'target_page': page_name})
+    except Exception as e:
+        logger.error(f"Sync task error: {e}")
+
 # =========================================================================
-# 2. דקורטור לאבטחה
+# 2. דקורטור אבטחה
 # =========================================================================
 def login_required(f):
     from functools import wraps
@@ -39,7 +60,7 @@ def login_required(f):
     return decorated_function
 
 # =========================================================================
-# 3. נתיבי ניווט ותצוגה (Templates)
+# 3. נתיבי תצוגה (Templates) - הפירוט המלא כפי שהיה לך
 # =========================================================================
 
 @app.route('/')
@@ -53,25 +74,17 @@ def login_page():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # אימות המשתמש מול האפליקציה (auth_logic)
         if verify_app_user(username, password):
             session['user'] = username
             session.permanent = True
             
-            # --- הפעלת לוגין פיזי אוטומטי לבקר ---
-            # נבצע לוגין פיזי רק אם אנחנו לא במצב סימולציה
             if not getattr(config, 'SIMULATION_MODE', False):
                 try:
-                    from plc_core import perform_physical_login
-                    logger.info(f"User {username} logged in. Triggering PLC physical login sequence...")
-                    perform_physical_login()
+                    logger.info(f"User {username} logged in. Triggering Smart Login...")
+                    # הרצה ב-Thread כדי לא לחסום את תגובת ה-HTTP
+                    threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
                 except Exception as e:
-                    logger.error(f"Physical login failed: {e}")
-                    # במצב אמת אולי תרצה לעצור כאן, אבל כרגע אנחנו רק מתעדים שגיאה
-            else:
-                logger.info(f"SIMULATION MODE: User {username} logged in. Skipping physical PLC login sequence.")
-            # ------------------------------------
-
+                    logger.error(f"Login trigger failed: {e}")
             return redirect(url_for('index'))
             
         return render_template('login.html', error="פרטי התחברות שגויים")
@@ -82,7 +95,6 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
-# דפי סטטוס
 @app.route('/status_boys.html')
 @login_required
 def status_boys():
@@ -104,7 +116,7 @@ def status_shabbat():
     return render_template('status/status_shabbat.html')
 
 # =========================================================================
-# 4. ליבת השליטה (Control Hub)
+# 4. ליבת השליטה (Control Hub) - לוגיקה מלאה
 # =========================================================================
 
 @app.route('/control')
@@ -114,126 +126,63 @@ def control():
     if not raw_action:
         return jsonify({"status": "error", "message": "No action provided"}), 400
 
-    # 1. מנגנון Auto-Login (אם אלי לא מחובר, נסה להתחבר לפני הפקודה)
-    if not plc_core.is_eli_physically_connected():
-        # חריג: אם הפקודה היא LOGIN בעצמה, אל תריץ לוגין כפול
-        if raw_action != 'LOGIN':
-            logger.warning("PLC Eli Session lost. Running auto-login...")
-            plc_core.perform_physical_login()
-            time.sleep(1.2)
+    # 1. בדיקת חיבור אלי (Auto-Login) - נשאר כפי שהיה
+    if not plc_core.is_eli_physically_connected() and raw_action != 'LOGIN':
+        logger.warning("PLC Eli Session lost. Running auto-login...")
+        threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
+        time.sleep(0.5)
 
-    # 2. טיפול בפקודת LOGIN ישירה (מהכפתור ב-Header)
+    # 2. פקודת LOGIN ידנית
     if raw_action == 'LOGIN':
-        plc_core.perform_physical_login()
+        threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
         return jsonify({"status": "success", "message": "Login sequence executed"})
 
-    # 3. שליפת נתוני לחיצה (קואורדינטות ו-N)
-    res = {"status": "error"}
-    code = 400
-    cmd = None
-
+    # 3. ביצוע הפקודה באמצעות הלוגיקה הדינמית ב-plc_core
     try:
-        # לוגיקת BACK_
-        if raw_action.startswith("BACK_"):
-            ctx = raw_action.replace("BACK_", "")
-            cmd = config.BACK_CONFIG.get(ctx)
-        
-        # לוגיקת הקשר (Context /)
-        elif '/' in raw_action:
-            ctx_name, act_name = raw_action.split('/')
-            n_val = config.CONTEXT_N.get(ctx_name)
-            coords = config.TAB_COORDS.get(act_name) or config.COMMON_COORDS.get(act_name)
-            if n_val and coords:
-                cmd = {**coords, "n": n_val}
-        
-        # פקודה רגילה מ-COMMANDS
-        elif raw_action in config.COMMANDS:
-            cmd = config.COMMANDS[raw_action]
-
-        # 4. ביצוע הלחיצה אם נמצאו קואורדינטות
-        if cmd and 'x' in cmd and 'y' in cmd:
-            res, code = plc_core.send_physical_click(cmd["x"], cmd["y"], cmd.get("n", "00010000000000000000"), raw_action)
-        else:
-            logger.error(f"Action '{raw_action}' found but missing x/y coordinates in config")
-            res = {"status": "error", "message": f"Invalid config for {raw_action}"}
+        # הפונקציה הזו כבר יודעת לטפל ב: BACK_, פקודות עם '/', ופקודות COMMANDS רגילות
+        res, code = plc_core.send_physical_click_by_action(raw_action)
+        return jsonify(res), code
 
     except Exception as e:
-        logger.error(f"Error in control route for action {raw_action}: {e}")
-        res = {"status": "error", "message": str(e)}
-        code = 500
-
-    return jsonify(res), code
+        logger.error(f"Control error for action '{raw_action}': {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # =========================================================================
-# 5. ממשקי API לנתונים (AJAX)
+# 5. ממשקי API לנתונים (AJAX) - כולל D1 ו-Auto Back
 # =========================================================================
 
-@app.route('/api/plc_time')
-def get_plc_time():
-    status = plc_core.fetch_plc_status("STATUS") # או דף אחר שבו מופיע הזמן
-    return jsonify({"time": status.get("PLC_TIME", "00:00:00")})
-    
-@app.route('/api/status/<area>')
-@app.route('/api/status/<area>/<page_type>')
-@login_required
-def get_area_status(area, page_type="status"):
-    """
-    API שמחזיר JSON עם מצב הנורות.
-    תומך בפורמט: /api/status/boys (סטטוס רגיל)
-    או: /api/status/boys/control_split (דף פיצול)
-    """
-    # קריאה לפונקציה שעדכנו ב-plc_core
-    data = fetch_plc_status(area, page_type)
-    return jsonify(data)
-
-# =       משיכת תאריך ושעה מהבקר ללא תלות במכשיר ממנו מתחברים לאפליקציה
-@app.route('/api/plc_time')
+@app.route('/system_time')
 def api_get_plc_time():
-    # קריאה לפונקציית הגירוד החדשה
+    """משיכת זמן מהבקר - מותאם לשם הנתיב ב-app.js"""
     t = plc_core.get_plc_system_time()
     if t:
         return jsonify({"time": t})
-    return jsonify({"time": "00:00:00"}), 404
+    return jsonify({"time": datetime.datetime.now().strftime("%H:%M:%S")})
 
-# =       בדיקה: האם המשתמש מחובר כרגע? אם לא השרת יבצע חיבור אוטומטי      
-# משתנה גלובלי למניעת כפילות לוגין
-login_lock = threading.Lock()
-is_login_running = False
+@app.route('/api/status/<area>')
+@login_required
+def get_area_status(area):
+    data = fetch_plc_status(area)
+    return jsonify(data)
 
 @app.route('/api/check_eli')
 def check_eli():
+    """בדיקת סטטוס חיבור Eli בלבד - ללא התנעת לוגין אוטומטי"""
     global is_login_running
     
-    # 1. אם אנחנו בסימולציה - החזר אישור מיידי בלי לבצע פעולות ברקע
+    # במצב סימולציה
     if getattr(config, 'SIMULATION_MODE', False):
         return jsonify({
             "connected": True,
             "status": "success",
             "server_time": datetime.datetime.now().strftime("%H:%M:%S"),
-            "server_date": datetime.datetime.now().strftime("%d/%m/%Y"),
-            "mode": "simulation"
+            "server_date": datetime.datetime.now().strftime("%d/%m/%Y")
         })
 
-    # 2. בדיקה אמיתית מול הבקר (במצב אמת)
+    # בדיקה פיזית מול הבקר
     is_connected = plc_core.is_eli_physically_connected()
     
-    # אם אלי לא מחובר ואין כרגע תהליך לוגין שרץ - נתניע לוגין אוטומטי
-    if not is_connected and not is_login_running:
-        def run_login():
-            global is_login_running
-            # וודא ש-login_lock מוגדר גלובלית ב-server_app.py
-            with login_lock:
-                is_login_running = True
-                try:
-                    logger.info("Automatic login sequence started...")
-                    plc_core.smart_login_sequence()
-                except Exception as e:
-                    logger.error(f"Background login error: {e}")
-                finally:
-                    is_login_running = False
-
-        threading.Thread(target=run_login, daemon=True).start()
-    
+    # הסטטוס יגיד 'retrying' רק אם תהליך לוגין כבר רץ ברקע (מהמתזמן או מהכפתור)
     status = "success" if is_connected else ("retrying" if is_login_running else "failed")
     
     return jsonify({
@@ -243,136 +192,106 @@ def check_eli():
         "server_date": datetime.datetime.now().strftime("%d/%m/%Y")
     })
 
-@app.route('/api/status/public')
-@login_required
-def get_public_status_api():
-    try:
-        from monitor_config import MONITOR_POINTS_STATUS_PUBLIC
-        points = MONITOR_POINTS_STATUS_PUBLIC.get("public", {})
-        n_val = config.CONTEXT_N.get("STATUS_PUBLIC")
-        
-        # קריאה לפונקציה ב-plc_core
-        data = plc_core.get_multi_status(points, n_val)
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-        
-    
 @app.route('/api/status/public/control_d1')
-@login_required # אם הגדרת דקורטור כזה, אם לא - הסר
+@login_required
 def api_get_d1_status():
-    from plc_core import get_multi_status, check_d1_button_status
+    from plc_core import get_multi_status
     import monitor_config
-    
-    # 1. קריאת סטטוס נורות הביקורת מהבקר
-    results = get_multi_status(monitor_config.MONITOR_POINTS_D1_STATUS)
-    
-    # 2. בדיקת מצב כפתורי הטוגל (שבת ומועדונים)
-    results['SHABBAT_STATUS'] = check_d1_button_status("SHABBAT_STATUS")
-    results['CLUBS_STATUS'] = check_d1_button_status("CLUBS_STATUS")
-    
+    # משיכת נורות הסטטוס של מסך D1
+    results = get_multi_status(monitor_config.MONITOR_POINTS_D1_STATUS, config.CONTEXT_N.get("D1_MAIN"))
     return jsonify(results)
-# ======================================================================================================
-# חזרה אוטומטית במקרה של חוסר פעילות וסנכרון עם מסך בקר
-# ======================================================================================================
 
 @app.route('/api/trigger_auto_back')
 @login_required
 def trigger_auto_back():
     try:
-        # 1. נסיון לקבל רמז מהדפדפן (מהיר)
         page_hint = request.args.get('page_hint')
-        
-        # 2. בדיקה פיזית בבקר (אמין)
         actual_n = plc_core.get_screen_n_by_pixel_check()
         
         if not actual_n:
             return jsonify({"status": "error", "message": "PLC not responding"}), 500
 
-        from plc_core import N_TO_PAGE_NAME
-        # סדר עדיפויות: מה שהבקר אומר, ואם לא מזוהה - מה שהדפדפן אמר
         page_key = N_TO_PAGE_NAME.get(actual_n) or page_hint
-
         if page_key == "MAIN":
             return jsonify({"status": "success", "page": "MAIN"})
 
-        if not page_key:
-            return jsonify({"status": "unknown_n", "n": actual_n}), 200
-
-        # שליחת הלחיצה
         back_cmd = config.BACK_CONFIG.get(page_key)
         if back_cmd:
-            # שימוש ב-actual_n כדי שהלחיצה תשלח עם ה-N הנכון שהבקר נמצא בו כרגע
             plc_core.send_physical_click(back_cmd['x'], back_cmd['y'], actual_n, f"BACK_FROM_{page_key}")
             return jsonify({"status": "success", "page": page_key})
         
         return jsonify({"status": "no_back_defined", "page": page_key}), 404
     except Exception as e:
-        logger.error(f"Auto-back error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-        
-        
+
 # =========================================================================
-# נעילת ניווט במקרה שהמשתמש לא מחבור לבקר
+# 6. הגנה וניווט דינמי
 # =========================================================================
 
-# רשימת דפים שדורשים חיבור של Eli (נתיבים מוגנים)
-PROTECTED_ROUTES = [
-    'nav_control', 
-    'settings'
-]
-#חסימת ניווט אם משתמש לא מחובר
 @app.before_request
 def block_navigation_if_not_connected():
-    # 1. אם אנחנו בסימולציה - אין חסימות
-    if getattr(config, 'SIMULATION_MODE', False):
-        return None
-
-    # 2. רשימת דפים שדורשים חיבור (הורדתי את הסטטוסים כדי שתוכל לראות אותם תמיד)
+    if getattr(config, 'SIMULATION_MODE', False): return None
     PROTECTED_ROUTES = ['nav_control', 'nav_settings']
     
-    # בודק אם ה-endpoint הנוכחי הוא 'serve_html_pages' (כי זה מה שאתה משתמש בו)
     if request.endpoint == 'serve_html_pages':
         page_name = request.view_args.get('page_name', '')
-        # אם מנסים להיכנס לדף בקרה או הגדרות בלי חיבור פיזי
         if any(protected in page_name for protected in PROTECTED_ROUTES):
             if not plc_core.is_eli_physically_connected():
-                # במקום לחסום לגמרי, רק נדפיס אזהרה ללוג בינתיים
-                logger.warning(f"Access to {page_name} without Eli connection!")
-                # אם אתה רוצה לחסום ממש, תחזיר את ה-return redirect הבא:
-                # return redirect(url_for('serve_html_pages', page_name='index.html'))
-    
+                logger.warning(f"Unauthorized access attempt to {page_name} (Eli not connected)")
+                # כאן אפשר להוסיף redirect אם רוצים חסימה קשיחה
     return None
 
 @app.route('/<path:page_name>')
 @login_required
 def serve_html_pages(page_name):
-    # אם המשתמש הקיש שם דף ללא .html בסוף, נוסיף אותו
-    if not page_name.endswith('.html'):
-        page_name += '.html'
+    if not page_name.endswith('.html'): page_name += '.html'
     
-    # רשימת התיקיות לחיפוש לפי ה-tree.txt שלך
-    search_locations = [
-        page_name,                   # בתיקיית templates הראשית
-        f"status/{page_name}",       # בתיקיית status
-        f"control/{page_name}"       # בתיקיית control
-    ]
+    # חיפוש הקובץ בתיקיות השונות (סטטוס, בקרה, ראשי)
+    search_locations = [page_name, f"status/{page_name}", f"control/{page_name}"]
     
     for location in search_locations:
-        # בדיקה אם הקובץ פיזית קיים בתיקייה
         full_path = os.path.join(app.template_folder, location)
         if os.path.exists(full_path):
-            logger.info(f"Serving page: {location}")
             return render_template(location)
     
-    logger.error(f"Page not found: {page_name}")
-    return f"הדף {page_name} לא נמצא במערכת", 404
-
+    return f"הדף {page_name} לא נמצא", 404
 
 # =========================================================================
-# הרצה
+# 7. מתזמן (Scheduler)
 # =========================================================================
 
+def check_eli_connection():
+    """משימת רקע שמוודאת חיבור Eli ומתקנת במידת הצורך"""
+    global is_login_running
+    
+    if getattr(config, 'SIMULATION_MODE', False):
+        return
+
+    is_connected = plc_core.is_eli_physically_connected()
+    
+    if not is_connected and not is_login_running:
+        logger.info("Scheduler: Eli disconnected. Starting background smart login...")
+        def run_login():
+            global is_login_running
+            with login_lock:
+                is_login_running = True
+                try:
+                    plc_core.smart_login_sequence()
+                except Exception as e:
+                    logger.error(f"Background login error: {e}")
+                finally:
+                    is_login_running = False
+
+        threading.Thread(target=run_login, daemon=True).start()
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=check_plc_status, trigger="interval", seconds=60)
+scheduler.add_job(func=check_eli_connection, trigger="interval", minutes=4)
+scheduler.start()
+
+# =========================================================================
+# הרצת השרת
+# =========================================================================
 if __name__ == '__main__':
-    # הרצה על כל הממשקים בפורט 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # שימוש ב-socketio.run חיוני לעבודה תקינה של WebSockets
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)

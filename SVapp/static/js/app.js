@@ -1,229 +1,118 @@
 /**
- * app.js - לוגיקת שליטה, סנכרון HMI וניהול חוסר פעילות (גרסה מאוחדת ומתוקנת)
+ * app.js - Production Version
  */
 
-// ==========================================
-// 1. ניהול זמן חוסר פעילות (Auto Logout)
-// ==========================================
+// 1. הגדרת SocketIO
+if (!window.socket) {
+    window.socket = io();
+}
+
+window.socket.on('force_navigate', (data) => {
+    const currentPage = window.location.pathname.replace('/', '');
+    if (currentPage !== data.target_page && currentPage + '.html' !== data.target_page) {
+        window.location.href = "/" + data.target_page;
+    }
+});
+
+// 2. ניהול זמן חוסר פעילות (Auto Logout)
 (function() {
-    // ה-JavaScript ינסה לקחת את הערך שהזרקנו מה-config. 
-    // אם הוא לא מוצא אותו (למשל במקרה של שגיאה), הוא יברירת מחדל ל-300 שניות.
-    const timeoutSeconds = window.INACTIVITY_TIMEOUT || 300;
+    const timeoutSeconds = window.INACTIVITY_TIMEOUT || 270;
     let inactivityTimer;
 
-    console.log(`Auto-logout system initialized. Timeout: ${timeoutSeconds} seconds.`);
+    const doAutoLogout = () => window.location.href = '/'; 
 
-    function doAutoLogout() {
-        console.log("Inactivity detected. Redirecting to logout...");
-        // הפניה לנתיב הניתוק בשרת
-        window.location.href = '';
-    }
-
-    function resetInactivityTimer() {
-        // בכל פעם שיש פעילות, אנחנו מאפסים את השעון ומתחילים ספירה מחדש
+    const resetInactivityTimer = () => {
         clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(doAutoLogout, timeoutSeconds * 1000);
-    }
+    };
 
-    // רשימת אירועים שנחשבים כ"פעילות משתמש"
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    activityEvents.forEach(event => {
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
         document.addEventListener(event, resetInactivityTimer, true);
     });
-
-    // הפעלה ראשונית של הטיימר עם טעינת הדף
     resetInactivityTimer();
 })();
 
-// ==========================================
-// 2. פונקציות שליטה מול השרת
-// ==========================================
-
-/**
- * פונקציה לשליחת פקודה לשרת
- */
-async function sendAction(actionName) {
+// 3. פונקציות שליטה (חשופות ל-window)
+window.sendAction = async function(actionName) {
     const statusFooter = document.getElementById('status-message');
-    
     if (statusFooter) {
-        statusFooter.textContent = `שולח לבקר: ${actionName}...`;
+        statusFooter.textContent = `שולח: ${actionName}...`;
         statusFooter.style.backgroundColor = '#fffacd'; 
     }
 
     try {
-        const response = await fetch(`/control?action=${actionName}`);
-        const data = await response.json();
-
+        const response = await fetch(`/control?action=${encodeURIComponent(actionName)}`);
         if (response.ok) {
             if (statusFooter) {
                 statusFooter.textContent = `בוצע: ${actionName}`;
                 statusFooter.style.backgroundColor = '#d4edda';
             }
             return true;
-        } else {
-            throw new Error(data.message || 'שגיאת שרת');
         }
+        throw new Error('Server Error');
     } catch (err) {
-        console.error('Fetch error:', err);
         if (statusFooter) {
-            statusFooter.textContent = `שגיאה: ${err.message}`;
+            statusFooter.textContent = `שגיאה בתקשורת`;
             statusFooter.style.backgroundColor = '#f8d7da';
         }
         return false;
     }
-}
-
-/**
- * handleButtonClick - לוגיקת ניווט עם שליחת פקודה
- * גרסה מתוקנת המונעת ניווט ל-null
- */
-async function handleButtonClick(action, nextUrl, currentContext) {
-    const fullAction = currentContext ? `${currentContext}/${action}` : action;
-    console.log("Processing action:", fullAction);
-
-    // שליחה לשרת
-    await sendAction(fullAction);
-    
-    // ניווט יתבצע רק אם הוגדר URL יעד תקין
-    // אנחנו בודקים ש-nextUrl קיים, שהוא לא null, ושהוא לא המחרוזת "null"
-    if (nextUrl && nextUrl !== 'null' && nextUrl !== null) {
-        console.log("Navigating to:", nextUrl);
-        setTimeout(() => {
-            window.location.href = nextUrl;
-        }, 1200);
-    } else {
-        console.log("No navigation required, staying on page.");
-        // אופציונלי: עדכון נורות מקומי אם מדובר בדף בנים
-        if (typeof updateBoysGeneralStatus === 'function') {
-            setTimeout(updateBoysGeneralStatus, 1000);
-        }
-    }
-}
-
-/**
- * navigateTo - פונקציית הניווט שנקראת מה-HTML (מתקן את ה-ReferenceError)
- */
-window.navigateTo = async function(targetUrl, action) {
-    console.log("Navigating to:", targetUrl, "Action:", action);
-    // קריאה לפונקציית הלוגיקה המרכזית עם הפרמטרים בסדר הנכון
-    await handleButtonClick(action, targetUrl);
 };
 
-/**
- * פונקציית חזרה אוטומטית
- */
-async function goBack() {
-    const urlElement = document.getElementById('nav-back-url');
-    const actionElement = document.getElementById('nav-back-action');
-    
-    if (!urlElement || !actionElement) return;
+window.handleButtonClick = async function(action, nextUrl, currentContext = null) {
+    // בניית פקודה הכוללת הקשר (למשל STATUS_BOYS/TAB_GIRLS)
+    const fullAction = currentContext ? `${currentContext}/${action}` : action;
+    console.log("Action:", fullAction);
 
-    const targetUrl = urlElement.value.trim();
-    const screenName = actionElement.value.trim();
-    const fullBackAction = `BACK_${screenName}`;
+    await window.sendAction(fullAction);
     
-    await sendAction(fullBackAction);
-    
-    setTimeout(() => {
-        window.location.href = targetUrl;
-    }, 1200);
-}
+    if (nextUrl && nextUrl !== 'null') {
+        setTimeout(() => { window.location.href = nextUrl; }, 800);
+    }
+};
 
-// ==========================================
-// 3. עדכוני סטטוס וזמן (Polling)
-// ==========================================
+// 4. עדכוני סטטוס דינמיים (Polling)
+window.updateCurrentStatus = async function() {
+    // זיהוי אוטומטי של האזור לפי ה-URL
+    let area = 'boys';
+    if (window.location.pathname.includes('girls')) area = 'girls';
+    if (window.location.pathname.includes('public')) area = 'public';
+    if (window.location.pathname.includes('shabbat')) area = 'shabbat';
 
-/**
- * עדכון זמן המערכת ב-Header
- */
-async function updateSystemTime() {
+    try {
+        const response = await fetch(`/api/status/${area}`);
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.data) {
+            Object.entries(result.data).forEach(([ledId, state]) => {
+                const el = document.getElementById('stat_' + ledId);
+                if (el) {
+                    el.className = `led ${state.toLowerCase()}`;
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Status Update Failed:", err);
+    }
+};
+
+window.updateSystemTime = async function() {
     const timeDisplay = document.getElementById('system-time');
     if (!timeDisplay) return;
     try {
         const response = await fetch('/system_time');
         const data = await response.json();
-        if (data.status === 'success') {
-            timeDisplay.textContent = data.time;
-        }
+        if (data.status === 'success') timeDisplay.textContent = data.time;
     } catch (e) {}
-}
+};
 
-/**
- * עדכון מצב נורות (LEDs) בדף סטטוס בנים
- */
-async function updateBoysGeneralStatus() {
-    try {
-        const response = await fetch('/api/status/boys_general_full');
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            for (const [ledId, state] of Object.entries(result.data)) {
-                const el = document.getElementById('stat_' + ledId);
-                if (el) {
-                    // הסרת כל המצבים הקודמים
-                    el.classList.remove('on', 'off', 'unknown');
-                    
-                    if (state === 'ON') {
-                        el.classList.add('on'); // ירוק
-                    } else if (state === 'OFF') {
-                        el.classList.add('off'); // אדום
-                    } else {
-                        el.classList.add('unknown'); // אפור פועם - זה יגיד לנו שהזיהוי נכשל
-                    }
-                }
-            }
-        }
-    } catch (err) {
-        console.error("נכשל עדכון נורות בנים:", err);
-    }
-}
-
-/**
- * עדכון סטטוס שירותים
- */
-async function refreshRestroomStatus() {
-    try {
-        const response = await fetch('/api/status/restrooms');
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            const container = document.getElementById('leds-restrooms');
-            if (!container) return;
-            
-            container.innerHTML = ''; 
-            for (const [house, state] of Object.entries(result.data)) {
-                const label = house.replace('house_', 'בית ').replace('a', ' א').replace('b', ' ב');
-                const html = `
-                    <div class="led-item">
-                        <span>${label}</span>
-                        <div class="led-dot ${state.toLowerCase()}"></div>
-                    </div>`;
-                container.innerHTML += html;
-            }
-        }
-    } catch (e) { console.error("Update restrooms failed", e); }
-}
-
-// ==========================================
-// 4. אתחול בטעינת הדף (DOM Ready)
-// ==========================================
-
+// 5. אתחול
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. עדכון זמן מערכת - רץ תמיד בכל הדפים (מומלץ להשאיר)
-    updateSystemTime();
-    setInterval(updateSystemTime, 10000);
+    window.updateSystemTime();
+    setInterval(window.updateSystemTime, 10000);
 
-    // 2. לוגיקה ספציפית לדף סטטוס בנים
-    if (window.location.pathname.includes('boys_general')) {
-        // מפעיל עדכון ראשון מיד
-        updateBoysGeneralStatus();
-        // קובע רענון כל 5 שניות
-        setInterval(updateBoysGeneralStatus, 5000);
-        
-        /* הערה: אם updateBoysGeneralStatus מעדכן גם את השירותים 
-           לפי ה-ID (stat_T_...), אין צורך בבלוק של refreshRestroomStatus.
-           מחק אותו כדי למנוע כפל פניות לשרת.
-        */
+    if (window.location.pathname.includes('status_')) {
+        window.updateCurrentStatus();
+        setInterval(window.updateCurrentStatus, 5000);
     }
 });

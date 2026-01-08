@@ -1,62 +1,56 @@
 {% extends "base_layout.html" %}
 
 {% block content %}
-<div class="status-tabs-container">
-    <button class="tab-btn {% if active_tab == 'boys' %}active{% endif %}" onclick="handleButtonClick('TAB_BOYS', '/status_boys.html')">בנים</button>
-    <button class="tab-btn {% if active_tab == 'girls' %}active{% endif %}\" onclick="handleButtonClick('TAB_GIRLS', '/status_girls.html')">בנות</button>
-    <button class="tab-btn {% if active_tab == 'public' %}active{% endif %}\" onclick="handleButtonClick('TAB_PUBLIC', '/status_public.html')">ציבורי</button>
-    <button class="tab-btn {% if active_tab == 'shabbat' %}active{% endif %}\" onclick="handleButtonClick('TAB_SHABBAT', '/status_shabbat.html')">שבת</button>
-</div>
-
 <div id="context-holder" style="display:none;">{% block context_name %}{% endblock %}</div>
+
+<div class="status-tabs-container">
+    {% set ctx = self.context_name() | trim %}
+    <button class="tab-btn {% if active_tab == 'boys' %}active{% endif %}" 
+            onclick="handleButtonClick('TAB_BOYS', '/status_boys.html', '{{ ctx }}')">בנים</button>
+    <button class="tab-btn {% if active_tab == 'girls' %}active{% endif %}" 
+            onclick="handleButtonClick('TAB_GIRLS', '/status_girls.html', '{{ ctx }}')">בנות</button>
+    <button class="tab-btn {% if active_tab == 'public' %}active{% endif %}" 
+            onclick="handleButtonClick('TAB_PUBLIC', '/status_public.html', '{{ ctx }}')">ציבורי</button>
+    <button class="tab-btn {% if active_tab == 'shabbat' %}active{% endif %}" 
+            onclick="handleButtonClick('TAB_SHABBAT', '/status_shabbat.html', '{{ ctx }}')">שבת</button>
+</div>
 
 {% block status_content %}{% endblock %}
 
 <script>
-    const currentCtx = document.getElementById('context-holder').innerText.trim();
-
-    // שימוש בפונקציה הגלובלית handleButtonClick מ-app.js עם currentCtx כפרמטר שלישי
-    // אם הפונקציה הגלובלית קיימת, נעטוף אותה כדי להוסיף את currentCtx
-    if (typeof handleButtonClick !== 'undefined') {
-        const originalHandleButtonClick = handleButtonClick;
-        window.handleButtonClick = async function(tabAction, targetUrl) {
-            // אם יש currentCtx, נשתמש בו כפרמטר שלישי
-            if (currentCtx) {
-                return await originalHandleButtonClick(tabAction, targetUrl, currentCtx);
-            } else {
-                return await originalHandleButtonClick(tabAction, targetUrl);
-            }
-        };
-    } else {
-        // גיבוי: אם הפונקציה הגלובלית לא נטענה, נשתמש בהגדרה מקומית
-        async function handleButtonClick(tabAction, targetUrl) {
-            const fullAction = currentCtx + "/" + tabAction;
-            try {
-                await fetch('/control?action=' + encodeURIComponent(fullAction));
-                window.location.href = targetUrl;
-            } catch (e) { window.location.href = targetUrl; }
-        }
-    }
-
-    // פונקציית החזרה הקריטית שחיפשת
-    async function syncAndNavigate(targetUrl) {
-        const footer = document.getElementById('status-message');
-        if (footer) footer.innerText = "חוזר לדף הבית...";
-        
-        // שליחת פקודת BACK מותאמת להקשר הנוכחי (למשל BACK_STATUS_BOYS)
+    // פונקציית חזרה ייעודית שמשתמשת בהקשר
+    async function syncAndNavigateBack(targetUrl) {
+        const currentCtx = document.getElementById('context-holder').innerText.trim();
         const backCmd = "BACK_" + currentCtx;
-        try {
-            await fetch('/control?action=' + encodeURIComponent(backCmd));
-            setTimeout(() => { window.location.href = targetUrl; }, 600);
-        } catch (error) {
-            window.location.href = targetUrl;
-        }
+        await window.sendAction(backCmd);
+        setTimeout(() => { window.location.href = targetUrl; }, 600);
     }
 </script>
 
 <style>
-    .status-tabs-container { display: flex; justify-content: space-around; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #ddd; }
-    .tab-btn { padding: 10px 20px; border: none; background: #eee; cursor: pointer; font-weight: bold; border-radius: 5px; }
-    .tab-btn.active { background: #007bff; color: white; }
+    .status-tabs-container { 
+        display: flex; 
+        justify-content: space-around; 
+        background: #f1f3f5; 
+        padding: 15px; 
+        border-bottom: 3px solid #dee2e6;
+        gap: 10px;
+    }
+    .tab-btn { 
+        flex: 1;
+        padding: 12px; 
+        border: 1px solid #ced4da; 
+        background: white; 
+        cursor: pointer; 
+        font-weight: bold; 
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .tab-btn.active { 
+        background: #007bff; 
+        color: white; 
+        border-color: #0056b3;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
 </style>
 {% endblock %}
