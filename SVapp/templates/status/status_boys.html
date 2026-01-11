@@ -122,10 +122,8 @@
     .sensor-val { color: #0f0; font-weight: bold; font-size: 0.8rem; }
     .inline-led { display: flex; align-items: center; gap: 8px; }
 
-    .led-indicator { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #555; background: #333; flex-shrink: 0; }
-    .led-indicator.on { background: #0f0; box-shadow: 0 0 10px #0f0; border-color: #fff; }
-    .led-indicator.off { background: #f00; box-shadow: 0 0 5px #700; }
-    .led-indicator.unknown { background: #444; }
+    .led-indicator { flex-shrink: 0; }
+    /* Size, colors, and other styles from unified CSS (style.css) */
 
     /* התאמה למובייל - אם המסך צר מאוד, יעבור ל-2 עמודות */
     @media (max-width: 480px) {

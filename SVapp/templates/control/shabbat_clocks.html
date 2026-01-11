@@ -1,0 +1,63 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="shabbat-page-container">
+    <h1 class="page-title">הגדרות שעוני שבת - {{ area }}</h1>
+
+    {% set base_y_list = [266, 412, 556, 701] %}
+    {% set clock_names = ['א', 'ב', 'ג', 'ד'] %}
+    {% set b_names = ['1', '2', '3', '4', '5', '9א', '9ב', '11א1', '11א2', '11ב1', '11ב2'] %}
+    {% set b_x_coords = [783, 733, 683, 633, 583, 533, 483, 418, 358, 288, 228] %}
+    {% set d_names = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'] %}
+
+    <div class="shabbat-grid">
+        {% for base_y in base_y_list %}
+        <div class="shabbat-strip">
+            <div class="strip-label">שעון {{ clock_names[loop.index0] }}</div>
+            
+            <div class="strip-controls">
+                <div class="row buildings-row">
+                    {% for x in b_x_coords %}
+                    <button class="btn-hmi btn-b" onclick="sendPlcClick({{ x }}, {{ base_y - 44 }})">
+                        {{ b_names[loop.index0] }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="row bottom-row">
+                    <div class="days-group">
+                        {% for i in range(7) %}
+                        <button class="btn-hmi btn-day" onclick="sendPlcClick({{ 783 - (i*50) }}, {{ base_y + 13 }})">
+                            {{ d_names[i] }}
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="time-display-group">
+                        <div class="time-item">
+                            <label>הפעלה</label>
+                            <div class="digital-display" onclick="sendPlcClick(387, {{ base_y + 18 }})">08:00</div>
+                        </div>
+                        <div class="time-item">
+                            <label>כיבוי</label>
+                            <div class="digital-display" onclick="sendPlcClick(257, {{ base_y + 18 }})">16:30</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function sendPlcClick(x, y) {
+    console.log(`Sending click to PLC at X: ${x}, Y: ${y}`);
+    fetch('/api/click', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({x: x, y: y})
+    });
+}
+</script>
+{% endblock %}

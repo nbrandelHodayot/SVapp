@@ -137,11 +137,9 @@
     .sensor-val { font-weight: bold; margin-right: 5px; }
     .club-cell.inline-led { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
 
-    /* נורות */
-    .led-indicator { width: 15px; height: 15px; border-radius: 50%; border: 1px solid #444; background: #222; }
-    .led-indicator.on { background: #0f0; box-shadow: 0 0 8px #0f0; border-color: #fff; }
-    .led-indicator.off { background: #f00; box-shadow: 0 0 5px #700; }
-    .led-indicator.unknown { background: #444; }
+    /* נורות - גודל ספציפי, צבעים מ-style.css */
+    .led-indicator { width: 15px; height: 15px; }
+    /* Colors and other styles from unified CSS */
 
     @media (max-width: 768px) {
         .houses-grid { grid-template-columns: repeat(2, 1fr); }

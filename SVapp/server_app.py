@@ -95,6 +95,14 @@ def logout():
     session.clear()
     return redirect(url_for('login_page'))
 
+@app.route('/status/<area>')
+def status_page(area):
+    # קריאה לפונקציה שעדכנו קודם (שמחזירה רנדומלי בבית)
+    data = plc_core.fetch_plc_status(area)
+    
+    # שליחת הנתונים ל-HTML תחת השם status_data
+    return render_template('status_base.html', area=area, status_data=data)
+
 @app.route('/status_boys.html')
 @login_required
 def status_boys():

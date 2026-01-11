@@ -164,7 +164,7 @@
     .column-stack { display: flex; flex-direction: column; gap: 20px; }
 
     .gen-box { 
-        background: #161616; 
+        background: var(--dark-box-bg-alt, #161616); 
         border: 1px solid #333; 
         border-radius: 12px; 
         padding: 18px; 
@@ -213,10 +213,7 @@
     .indicator-cell { display: flex; flex-direction: column; align-items: center; width: 45px; }
     .indicator-label { font-size: 0.75rem; color: #999; margin-top: 5px; }
 
-    .status-indicator { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
-    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
-    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
-    .status-indicator.unknown { background: #444; }
+    /* .status-indicator styles are now in style.css - unified LED system */
 
     /* התאמה למסכים קטנים */
     @media (max-width: 1100px) {

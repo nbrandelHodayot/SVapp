@@ -1,11 +1,13 @@
 import sys, os, requests, time, re, logging, io
 from PIL import Image
 from requests.auth import HTTPBasicAuth
+import random
 
 # הוספת נתיב העבודה כדי למנוע שגיאות Import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config_app as config
 import monitor_config
+from monitor_config import SHABBAT_CLOCKS_BASE_Y, SHABBAT_CLOCK_LAYOUT
 
 logger = logging.getLogger(__name__)
 
@@ -157,37 +159,51 @@ def get_multi_status(points_dict, n_val):
         return results
 
 def fetch_plc_status(area):
-    """מביא סטטוס נורות בצורה חסינה לטעויות בשמות משתנים או במבנה המילון"""
-    area = area.lower()
+    """
+    מביא סטטוס נורות. 
+    במצב סימולציה (בבית): מחזיר נתונים אקראיים לעיצוב.
+    במצב אמת (במשרד): ניגש לבקר.
+    """
+    area_upper = area.upper()
+    area_lower = area.lower()
+
+    # --- שלב א: בדיקה האם אנחנו בבית (Simulation Mode) ---
+    if getattr(config, 'SIMULATION_MODE', False):
+        # אנחנו בבית! נחפש את רשימת הנקודות רק כדי לדעת אילו שמות של נורות להמציא
+        p_root = getattr(monitor_config, f"MONITOR_POINTS_STATUS_{area_upper}", 
+                 getattr(monitor_config, f"MONITOR_POINTS_{area_upper}", {}))
+        
+        # חילוץ המילון (טיפול במבנה מקונן)
+        points_dict = p_root.get(area_lower, p_root) if isinstance(p_root, dict) else {}
+
+        if points_dict:
+            # מייצרים סטטוס אקראי לכל נורה קיימת בקונפיג
+            return {name: random.choice(["ON", "OFF"]) for name in points_dict.keys()}
+        else:
+            # אם אפילו בקונפיג אין נקודות, נחזיר כמה נורות גנריות כדי שלא תראה דף ריק בעיצוב
+            return {"demo_light_1": "ON", "demo_light_2": "OFF", "demo_light_3": "ON"}
+
+    # --- שלב ב: מצב אמת (רק אם SIMULATION_MODE = False) ---
     
-    # 1. מיפוי שמות אפשריים למשתנים ב-monitor_config
-    possible_attr_names = [
-        f"MONITOR_POINTS_STATUS_{area.upper()}",
-        f"MONITOR_POINTS_{area.upper()}",
-        f"STATUS_{area.upper()}"
-    ]
-    
+    # חיפוש הגדרות
+    possible_attr_names = [f"MONITOR_POINTS_STATUS_{area_upper}", f"MONITOR_POINTS_{area_upper}"]
     p_root = {}
     for attr in possible_attr_names:
         p_root = getattr(monitor_config, attr, {})
-        if p_root: break # מצאנו משהו, עוצרים
+        if p_root: break
 
-    # 2. חילוץ הנקודות (טיפול במבנה מקונן או שטוח)
-    # אם המילון מכיל את שם האזור כמפתח (כמו בבנים), ניקח אותו. אם לא - ניקח את כל המילון.
-    if isinstance(p_root, dict):
-        p = p_root.get(area, p_root)
-    else:
-        p = {}
+    p = p_root.get(area_lower, p_root) if isinstance(p_root, dict) else {}
+    n = config.CONTEXT_N.get(f"STATUS_{area_upper}")
 
-    # 3. הבאת ערך ה-N מהקונפיג
-    n = config.CONTEXT_N.get(f"STATUS_{area.upper()}")
-
-    # לוג לצורך ניפוי שגיאות אם עדיין לא עובד
     if not n or not p:
-        logger.warning(f"Status Scan: Missing data for {area}. Points found: {bool(p)}, N found: {bool(n)}")
         return {}
 
-    return get_multi_status(p, n)
+    try:
+        # פונקציית הסריקה האמיתית שמדברת עם הבקר
+        return get_multi_status(p, n)
+    except Exception as e:
+        logger.error(f"Real-time scan failed: {e}")
+        return {}
 
 # ==========================================
 # 5. לוגיקת לוגין וזיהוי מסך
@@ -235,3 +251,49 @@ def smart_login_sequence():
         perform_physical_login()
     else:
         logger.info("Smart Login: Eli is already connected, skipping.")
+
+def read_shabbat_clock_time(img, clock_index, type="ON"):
+    """
+    img: אובייקט התמונה מהבקר
+    clock_index: 0-3 (עבור שעונים א-ד)
+    """
+    if config.SIMULATION_MODE:
+        return "08:00" if type == "ON" else "16:30"
+
+    base_y = SHABBAT_CLOCKS_BASE_Y[clock_index]
+    layout = SHABBAT_CLOCK_LAYOUT
+    
+    time_digits = []
+    
+    for x_pos in layout["DIGITS_X"]:
+        # גזירת ריבוע הספרה
+        y_pos = base_y + layout["DIGIT_Y_OFFSET"]
+        digit_crop = img.crop((x_pos, y_pos, x_pos + layout["DIGIT_W"], y_pos + layout["DIGIT_H"]))
+        
+        # זיהוי הספרה לפי השוואת פיקסלים (נשתמש בנתונים שתביא)
+        digit = identify_digit_from_crop(digit_crop)
+        time_digits.append(str(digit))
+    
+    return f"{time_digits[0]}{time_digits[1]}:{time_digits[2]}{time_digits[3]}"
+
+def identify_digit_from_crop(crop_img):
+    """מקבלת תמונה של 10x15 ומחזירה את הספרה המזוהה"""
+    # הופך את התמונה לשחור-לבן כדי שיהיה קל לזהות
+    bw_img = crop_img.convert('L').point(lambda x: 0 if x < 128 else 255, '1')
+    
+    for digit, pattern in monitor_config.DIGIT_MAPS.items():
+        is_match = True
+        for row, black_pixels in pattern:
+            for x in range(10):
+                pixel = bw_img.getpixel((x, row))
+                # אם הפיקסל אמור להיות שחור (0) אבל הוא לבן (255)
+                if x in black_pixels and pixel == 255:
+                    is_match = False; break
+                # אם הפיקסל אמור להיות לבן אבל הוא שחור
+                if x not in black_pixels and pixel == 0:
+                    is_match = False; break
+            if not is_match: break
+        
+        if is_match:
+            return digit
+    return "?" # אם לא זיהה

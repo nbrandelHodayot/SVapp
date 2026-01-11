@@ -10,15 +10,15 @@
     'HEATER': 'חימום מים'
 } %}
 
-{# מיפוי הקשרים עבור הבקר (PLC Context) #}
+{# מיפוי הקשרים עבור הבקר (PLC Context) - תואם ל-CONTEXT_N ב-config_app.py #}
 {% set context_map = {
-    'AC1': 'BOYS_SH_AC1',
-    'AC2': 'BOYS_SH_AC2',
-    'ROOMS': 'BOYS_SH_ROOMS',
-    'WC': 'BOYS_SH_WC',
-    'HEATER': 'BOYS_SH_HEATER'
+    'AC1': 'BOYS_SHABBAT_AC1',
+    'AC2': 'BOYS_SHABBAT_AC2',
+    'ROOMS': 'BOYS_SHABBAT_ROOM_LIGHTS',
+    'WC': 'BOYS_SHABBAT_BATHROOM_LIGHTS',
+    'HEATER': 'BOYS_SHABBAT_HEATER'
 } %}
-{% set active_ctx = context_map.get(current_tab, 'BOYS_SH_AC1') %}
+{% set active_ctx = context_map.get(current_tab, 'BOYS_SHABBAT_AC1') %}
 
 {% block title %}שעוני שבת בנים - {{ tab_names[current_tab] }}{% endblock %}
 {% block page_name %}שעוני שבת בנים - {{ tab_names[current_tab] }}{% endblock %}
@@ -139,15 +139,12 @@
         font-weight: bold;
     }
 
-    /* נורית סטטוס לשעון */
+    /* נורית סטטוס לשעון - גודל ספציפי, צבעים מ-style.css */
     .status-indicator {
         width: 15px;
         height: 15px;
-        border-radius: 50%;
-        background: #444;
+        /* Colors and other styles from unified CSS */
     }
-    .status-indicator.on { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
-    .status-indicator.off { background: #ff0000; box-shadow: 0 0 5px #700000; }
 
     .timer-actions { flex-grow: 1; text-align: left; }
 
@@ -194,7 +191,7 @@
      * הפונקציה נקראת אוטומטית ע"י control_base
      */
     function refreshControlStatus() {
-        // אנחנו שולחים את ההקשר הנוכחי (למשל BOYS_SH_AC1) ל-API
+        // אנחנו שולחים את ההקשר הנוכחי (למשל BOYS_SHABBAT_AC1) ל-API
         // כדי לקבל את המצב של 4 השעונים ששייכים ללשונית הזו
         updateControlIndicators('/api/status/shabbat?context={{ active_ctx }}');
     }

@@ -9,6 +9,16 @@
     --success-green: #28a745;
     --error-red: #dc3545;
     --unknown-gray: #808080;
+    /* LED/Status indicator colors - unified */
+    --led-on-color: #00ff00;
+    --led-off-color: #ff0000;
+    --led-off-dark: #700000;
+    --led-unknown-color: #808080;
+    /* Dark box backgrounds - unified */
+    --dark-box-bg: #2d2d2d;
+    --dark-box-bg-alt: #050505;
+    --dark-box-bg-item: #383838;
+    --dark-box-bg-club: #3d3d3d;
 }
 
 body, html {
@@ -105,7 +115,7 @@ body, html {
 }
 
 .control-card {
-    background: #2d2d2d;
+    background: var(--dark-box-bg);
     border: 2px solid #444;
     border-radius: 8px;
     padding: 15px;
@@ -160,6 +170,7 @@ body, html {
 
 /* ==========================================
    3. עיצוב עמודי סטטוס
+   ========================================== */
 
 /* הגדרת הגריד של שלוש קוביות */
 .status-grid {
@@ -172,9 +183,9 @@ body, html {
     box-sizing: border-box;
 }
 
-/* עיצוב בסיסי לקוביות (בתים) */
+/* עיצוב בסיסי לקוביות (בתים) - שימוש בסגנון מאוחד */
 .house-box {
-    background: #2d2d2d;
+    background: var(--dark-box-bg);
     border: 1px solid #444;
     border-radius: 8px;
     padding: 15px 5px;
@@ -187,7 +198,7 @@ body, html {
 /* עיצוב המועדונים - תופס שורה שלמה (3 עמודות) */
 .club-section {
     grid-column: span 3; 
-    background: #3d3d3d;
+    background: var(--dark-box-bg-club);
     color: #ffcc00; /* צבע מובלט */
     font-weight: bold;
     padding: 20px;
@@ -215,7 +226,7 @@ body, html {
 }
 
 .gen-box {
-    background: #050505; 
+    background: var(--dark-box-bg-alt); 
     border: 2px solid #444; 
     border-radius: 12px;
     padding: 15px 10px;
@@ -231,30 +242,53 @@ body, html {
 /* ==========================================
    5. מערכת נורות (LEDs) - מנגנון מאוחד
    ========================================== */
-.led-dot, .status-indicator {
+
+/* ייחוד סגנון הנורות - שימוש מאוחד ב-led-dot, led-indicator, status-indicator, light-indicator */
+.led-dot, .led-indicator, .status-indicator, .light-indicator {
     border-radius: 50%;
     display: inline-block;
     transition: all 0.3s ease;
 }
 
-.led-dot { width: 14px; height: 14px; }
-.status-indicator.small { width: 16px; height: 16px; }
-
-/* מצב ON */
-.led-dot.on, .status-indicator.on { 
-    background-color: #00ff00; 
-    box-shadow: 0 0 10px #00ff00; 
+.led-dot, .led-indicator { 
+    width: 14px; 
+    height: 14px; 
 }
 
-/* מצב OFF */
-.led-dot.off, .status-indicator.off { 
-    background-color: #ff0000; 
-    box-shadow: 0 0 10px #700000; 
+.status-indicator.small { 
+    width: 16px; 
+    height: 16px; 
 }
 
-/* מצב UNKNOWN - אפור פועם */
-.led-dot.unknown, .status-indicator.unknown {
-    background-color: #808080;
+.light-indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #444;
+}
+
+/* מצב ON - ירוק זוהר (תמיכה גם ב-uppercase וגם ב-lowercase) */
+.led-dot.on, .led-indicator.on, .status-indicator.on, 
+.light-indicator.ON, .light-indicator.on { 
+    background-color: var(--led-on-color); 
+    box-shadow: 0 0 10px var(--led-on-color); 
+}
+
+/* מצב OFF - אדום/כהה (תמיכה גם ב-uppercase וגם ב-lowercase) */
+.led-dot.off, .led-indicator.off, .status-indicator.off { 
+    background-color: var(--led-off-color); 
+    box-shadow: 0 0 10px var(--led-off-dark); 
+}
+
+/* light-indicator.OFF משתמש בעיצוב כהה שונה (אפור עם inset shadow) */
+.light-indicator.OFF, .light-indicator.off {
+    background-color: #333;
+    box-shadow: inset 0 0 5px #000;
+}
+
+/* מצב UNKNOWN - אפור פועם (תמיכה גם ב-uppercase וגם ב-lowercase) */
+.led-dot.unknown, .led-indicator.unknown, .status-indicator.unknown, 
+.light-indicator.UNKNOWN, .light-indicator.unknown {
+    background-color: var(--led-unknown-color);
     box-shadow: 0 0 8px #555;
     animation: pulse-gray 2s infinite ease-in-out;
 }
@@ -271,7 +305,7 @@ body, html {
     flex-direction: row-reverse; 
     align-items: center;
     justify-content: space-between;
-    background: #383838;
+    background: var(--dark-box-bg-item);
     padding: 8px;
     border-radius: 4px;
     margin-bottom: 5px;
@@ -287,3 +321,67 @@ body, html {
 }
 .btn-on { background: #004d00; color: #fff; }
 .btn-off { background: #4d0000; color: #fff; }
+.shabbat-page-container {
+    padding: 10px;
+    background-color: #f0f0f0;
+}
+
+.shabbat-strip {
+    display: flex;
+    background: #fff;
+    border: 2px solid #ccc;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+.strip-label {
+    background: var(--header-bg);
+    color: white;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.strip-controls {
+    flex: 1;
+    padding: 10px;
+}
+
+.row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.btn-b { min-width: 45px; height: 35px; background: #eee; }
+.btn-day { min-width: 45px; height: 35px; background: #e8f4fd; color: #2980b9; }
+
+.digital-display {
+    background: #000;
+    color: #00ff00; /* ירוק זרחני */
+    font-family: 'Courier New', monospace;
+    padding: 5px 15px;
+    border-radius: 4px;
+    font-size: 1.1em;
+    border: 2px solid #444;
+    cursor: pointer;
+}
+
+.time-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 20px;
+}
+
+.time-item label {
+    font-size: 0.7em;
+    color: #666;
+    margin-bottom: 2px;
+}

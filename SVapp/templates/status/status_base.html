@@ -15,6 +15,21 @@
             onclick="handleButtonClick('TAB_SHABBAT', '/status_shabbat.html', '{{ ctx }}')">שבת</button>
 </div>
 
+{# תוכן סטטוס - אם status_data מועבר מ-Flask, נציג אותו כאן #}
+{% if status_data is defined %}
+<div class="status-grid">
+    {# הלולאה רצה על כל נורה שחזרה מהפונקציה fetch_plc_status #}
+    {% for name, status in status_data.items() %}
+    <div class="house-box">
+        <div class="led-item">
+            <span class="light-name">{{ name }}</span>
+            <div class="light-indicator {{ status }}"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% block status_content %}{% endblock %}
 
 <script>
@@ -52,5 +67,7 @@
         border-color: #0056b3;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
+
 </style>
 {% endblock %}

@@ -121,7 +121,7 @@
     .boys-general-wrapper { direction: rtl; padding: 20px; display: flex; flex-direction: column; gap: 25px; }
     .top-row, .bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; justify-items: center; align-items: start; }
     
-    .gen-box { background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 15px; width: 100%; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .gen-box { background: var(--dark-box-bg-alt, #0a0a0a); border: 1px solid #333; border-radius: 12px; padding: 15px; width: 100%; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .box-title { color: #ffcc00; text-align: center; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 20px; font-size: 1.1rem; }
     
     .btns-row { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
@@ -133,10 +133,7 @@
     .indicator-cell { display: flex; flex-direction: column; align-items: center; width: 100%; }
     .indicator-label { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 4px; white-space: nowrap; }
     
-    .status-indicator { width: 14px; height: 14px; border-radius: 50%; background: #333; }
-    .status-indicator.on { background: #0f0; box-shadow: 0 0 8px #0f0; }
-    .status-indicator.off { background: #f00; }
-    .status-indicator.unknown { background: #444; }
+    /* .status-indicator styles are now in style.css - unified LED system */
 
     .full-width-label { grid-column: span 4; justify-self: start; padding-right: 15px; }
     .row-label-cell { grid-column: 4; justify-self: end; color: #888; font-size: 0.75rem; align-self: center; }
