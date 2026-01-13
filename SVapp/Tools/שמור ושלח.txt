@@ -1,4 +1,4 @@
-source venv/bin/activate
+source venv_linux/bin/activate
 
 git add .
 
@@ -6,4 +6,4 @@ git commit -m "הסבר קצר על השינוי"
 
 git push (בלי תוספות, הוא כבר ידע לאן לשלוח).
 
-.\run_win.p
+venv_win\Scripts\activate

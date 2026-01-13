@@ -2,7 +2,8 @@
 
 {% block title %}0001 - תפריט ראשי{% endblock %}
 
-{% block page_name %}תפריט ראשי{% endblock %}
+{# כאן התיקון: שימוש בבלוק כדי שה-Layout יזהה את שם הדף #}
+{% block active_ctx %}INDEX{% endblock %}
 
 {% block content %}
 <div class="main-menu-container">
@@ -26,7 +27,7 @@
 </div>
 
 <style>
-    /* עיצוב לכפתורים חסומים כשאלי מנותק */
+    /* עיצוב משלים לכפתורים חסומים בדף הבית */
     .action-button.disabled-link {
         opacity: 0.4;
         pointer-events: none; 
@@ -38,9 +39,12 @@
 
 {% block extra_js %}
 <script>
+    /**
+     * פונקציה שבודקת את מצב החיבור לאלי (דרך Class של כפתור ה-USER)
+     * ומעדכנת את זמינות הכפתורים בדף
+     */
     function syncNavigationWithEli() {
         const userBtn = document.getElementById('user-login-btn');
-        // נבחר את כל הכפתורים שיש להם ID שמתחיל ב-nav-
         const navButtons = {
             status: document.getElementById('nav-status'),
             control: document.getElementById('nav-control'),
@@ -49,22 +53,24 @@
         
         if (!userBtn) return;
 
+        // הבדיקה מסתמכת על ה-Class ש-updateLoginStatus ב-Base מוסיף/מסיר
         const isConnected = userBtn.classList.contains('eli-connected');
-        console.log("Checking connection... Eli connected:", isConnected);
 
         if (isConnected) {
-            // אם מחובר - משחררים הכל
+            // אם מחובר - משחררים את כל האפשרויות
             if (navButtons.control) navButtons.control.classList.remove('disabled-link');
             if (navButtons.settings) navButtons.settings.classList.remove('disabled-link');
         } else {
-            // אם מנותק - נועלים רק את שליטה והגדרות (סטטוס תמיד פתוח)
+            // אם מנותק - נועלים רק את שליטה והגדרות (סטטוס תמיד זמין לקריאה)
             if (navButtons.control) navButtons.control.classList.add('disabled-link');
             if (navButtons.settings) navButtons.settings.classList.add('disabled-link');
         }
     }
 
+    // הפעלה וריענון של מצב הכפתורים
     document.addEventListener('DOMContentLoaded', () => {
         syncNavigationWithEli();
+        // בדיקה כל 2 שניות כדי להגיב מהר לשינויי סטטוס
         setInterval(syncNavigationWithEli, 2000); 
     });
 </script>

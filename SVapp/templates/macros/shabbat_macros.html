@@ -1,0 +1,42 @@
+{% macro render_timer_card(index, active_ctx) %}
+{% set label = ['א', 'ב', 'ג', 'ד'][index-1] %}
+<div class="timer-card" id="timer_card_{{ index }}">
+    <div class="timer-header">
+        <div class="timer-info-top">
+            <span class="timer-label">זמן {{ label }}</span>
+            <div class="status-indicator unknown" id="stat_{{ index }}"></div>
+        </div>
+        <div class="timer-times">
+            <div class="time-group">
+                <span class="time-label">ON</span>
+                <span class="time-val" id="time_on_{{ index }}">--:--</span>
+            </div>
+            <div class="time-group">
+                <span class="time-label">OFF</span>
+                <span class="time-val" id="time_off_{{ index }}">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="timer-section">
+        <span class="section-title">מבנים משוייכים:</span>
+        <div class="chips-container buildings-container" id="buildings_{{ index }}">
+            <span class="no-data">טוען נתונים...</span>
+        </div>
+    </div>
+
+    <div class="timer-section">
+        <span class="section-title">ימי פעילות:</span>
+        <div class="chips-container days-container" id="days_{{ index }}">
+            </div>
+    </div>
+
+    <div class="timer-actions">
+        <button type="button" 
+                class="shabbat-toggle-btn" 
+                onclick="handleControlAction('TIMER_{{ index }}_TOGGLE', '{{ active_ctx }}')">
+            שינוי מצב (ON/OFF)
+        </button>
+    </div>
+</div>
+{% endmacro %}

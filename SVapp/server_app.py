@@ -12,10 +12,17 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 from apscheduler.schedulers.background import BackgroundScheduler
 
+import io
+from PIL import Image
+
 # ייבוא הגדרות ולוגיקה מקבצים חיצוניים
 import config_app as config
 from auth_logic import verify_app_user
-from plc_core import send_physical_click, fetch_plc_status, send_physical_click_by_action, N_TO_PAGE_NAME
+
+from plc_core import (send_physical_click, fetch_plc_status, 
+                      send_physical_click_by_action, N_TO_PAGE_NAME, 
+                      parse_shabbat_clocks)
+
 # =========================================================================
 # 1. הגדרות שרת, סשן ולוגים
 # =========================================================================
@@ -123,6 +130,24 @@ def status_public():
 def status_shabbat():
     return render_template('status/status_shabbat.html')
 
+@app.route('/api/status/shabbat')
+@login_required
+def get_shabbat_status():
+    """
+    API המחזיר נתוני שעוני שבת לפי ההקשר (Context) שנשלח מה-Frontend.
+    """
+    ctx = request.args.get('context')
+    if not ctx:
+        return jsonify({"success": False, "error": "No context provided"}), 400
+        
+    # קריאה לפונקציית הליבה
+    data = plc_core.get_shabbat_status_data(ctx)
+    
+    if data.get("success"):
+        return jsonify(data), 200
+    else:
+        return jsonify(data), 500
+
 # =========================================================================
 # 4. ליבת השליטה (Control Hub) - לוגיקה מלאה
 # =========================================================================
@@ -131,74 +156,105 @@ def status_shabbat():
 @login_required
 def control():
     raw_action = request.args.get('action')
+    context_param = request.args.get('context', 'INDEX')
+
     if not raw_action:
         return jsonify({"status": "error", "message": "No action provided"}), 400
 
-    # 1. בדיקת חיבור אלי (Auto-Login) - נשאר כפי שהיה
-    if not plc_core.is_eli_physically_connected() and raw_action != 'LOGIN':
-        logger.warning("PLC Eli Session lost. Running auto-login...")
+    # 1. בדיקת חיבור פיזית (הפונקציה החדשה עם הפס הלבן/אפור)
+    # אנחנו לא מבצעים לוגין אוטומטי אם הפעולה היא עצמה LOGIN
+    if raw_action != 'LOGIN' and not plc_core.is_eli_physically_connected():
+        logger.warning(f"Eli session lost (Gray pixels detected). Running auto-login...")
         threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
-        time.sleep(0.5)
+        time.sleep(0.8) # המתנה קלה לסינכרון
 
     # 2. פקודת LOGIN ידנית
     if raw_action == 'LOGIN':
         threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
-        return jsonify({"status": "success", "message": "Login sequence executed"})
+        return jsonify({"status": "success", "message": "Login sequence initiated"})
 
-    # 3. ביצוע הפקודה באמצעות הלוגיקה הדינמית ב-plc_core
+    # 3. ביצוע הפקודה
     try:
-        # הפונקציה הזו כבר יודעת לטפל ב: BACK_, פקודות עם '/', ופקודות COMMANDS רגילות
-        res, code = plc_core.send_physical_click_by_action(raw_action)
+        # שליחה ל-plc_core עם ה-context הנוכחי
+        res, code = plc_core.send_physical_click_by_action(raw_action, context_param)
         return jsonify(res), code
 
     except Exception as e:
-        logger.error(f"Control error for action '{raw_action}': {e}")
+        logger.error(f"Control error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # =========================================================================
 # 5. ממשקי API לנתונים (AJAX) - כולל D1 ו-Auto Back
 # =========================================================================
 
+#משיכת תאריך/שעה מהבקר
 @app.route('/system_time')
 def api_get_plc_time():
-    """משיכת זמן מהבקר - מותאם לשם הנתיב ב-app.js"""
-    t = plc_core.get_plc_system_time()
-    if t:
-        return jsonify({"time": t})
-    return jsonify({"time": datetime.datetime.now().strftime("%H:%M:%S")})
+    """משיכת זמן מהבקר עבור השעון העליון"""
+    try:
+        t = plc_core.get_controller_time()
+        now = datetime.datetime.now()
+        return jsonify({
+            "server_time": t if t else now.strftime("%H:%M:%S"),
+            "server_date": now.strftime("%d/%m/%Y"),
+            "time": t if t else now.strftime("%H:%M:%S")
+        })
+    except Exception as e:
+        return jsonify({"time": "--:--:--", "server_time": "--:--:--"})
 
+@app.route('/api/check_eli')
+def check_eli():
+    """בדיקת סטטוס חיבור וסנכרון זמן"""
+    global is_login_running
+    try:
+        is_connected = plc_core.is_eli_physically_connected()
+        t = plc_core.get_controller_time()
+        status = "success" if is_connected else ("retrying" if is_login_running else "failed")
+        
+        return jsonify({
+            "connected": is_connected,
+            "status": status,
+            "server_time": t if t else datetime.datetime.now().strftime("%H:%M:%S"),
+            "server_date": datetime.datetime.now().strftime("%d/%m/%Y")
+        })
+    except Exception as e:
+        logger.error(f"Error in check_eli: {e}")
+        return jsonify({"connected": False, "status": "error"})
+
+@app.route('/api/shabbat_status')
+def api_shabbat_status():
+    """משיכת נתוני שעוני שבת (זמנים, ימים ומבנים)"""
+    context = request.args.get('context')
+    try:
+        if getattr(config, 'SIMULATION_MODE', False):
+            # נתוני דמה למצב סימולציה
+            return jsonify([
+                {"on_time": "16:30", "off_time": "22:00", "days": ["ו", "ש"], "buildings": ["1", "2"]},
+                {"on_time": "05:00", "off_time": "08:00", "days": ["א", "ג"], "buildings": ["3"]},
+                {"on_time": "18:00", "off_time": "23:00", "days": ["ה"], "buildings": ["9א"]},
+                {"on_time": "00:00", "off_time": "00:00", "days": [], "buildings": []}
+            ])
+
+        # 1. השגת צילום מסך
+        image = plc_core.get_plc_screenshot()
+        if not image:
+            return jsonify({"error": "Could not capture PLC screen"}), 500
+            
+        # 2. פענוח השעונים מהתמונה (הפונקציה שקיימת ב-plc_core.py)
+        clocks_data = plc_core.parse_shabbat_clocks(image)
+        
+        return jsonify(clocks_data)
+    except Exception as e:
+        logger.error(f"Error in api_shabbat_status: {e}")
+        return jsonify({"error": str(e)}), 500
+    
 @app.route('/api/status/<area>')
 @login_required
 def get_area_status(area):
     data = fetch_plc_status(area)
     return jsonify(data)
 
-@app.route('/api/check_eli')
-def check_eli():
-    """בדיקת סטטוס חיבור Eli בלבד - ללא התנעת לוגין אוטומטי"""
-    global is_login_running
-    
-    # במצב סימולציה
-    if getattr(config, 'SIMULATION_MODE', False):
-        return jsonify({
-            "connected": True,
-            "status": "success",
-            "server_time": datetime.datetime.now().strftime("%H:%M:%S"),
-            "server_date": datetime.datetime.now().strftime("%d/%m/%Y")
-        })
 
-    # בדיקה פיזית מול הבקר
-    is_connected = plc_core.is_eli_physically_connected()
-    
-    # הסטטוס יגיד 'retrying' רק אם תהליך לוגין כבר רץ ברקע (מהמתזמן או מהכפתור)
-    status = "success" if is_connected else ("retrying" if is_login_running else "failed")
-    
-    return jsonify({
-        "connected": is_connected,
-        "status": status,
-        "server_time": datetime.datetime.now().strftime("%H:%M:%S"),
-        "server_date": datetime.datetime.now().strftime("%d/%m/%Y")
-    })
 
 @app.route('/api/status/public/control_d1')
 @login_required
@@ -275,23 +331,19 @@ def check_eli_connection():
     if getattr(config, 'SIMULATION_MODE', False):
         return
 
+    # הקריאה לפונקציה החדשה שבודקת את הפיקסלים הלבנים
     is_connected = plc_core.is_eli_physically_connected()
     
-    if not is_connected and not is_login_running:
-        logger.info("Scheduler: Eli disconnected. Starting background smart login...")
-        def run_login():
-            global is_login_running
-            with login_lock:
-                is_login_running = True
-                try:
-                    plc_core.smart_login_sequence()
-                except Exception as e:
-                    logger.error(f"Background login error: {e}")
-                finally:
-                    is_login_running = False
-
-        threading.Thread(target=run_login, daemon=True).start()
-
+    if not is_connected:
+        if not is_login_running:
+            logger.info("Scheduler detected DISCONNECT (Anchor pixels missing). Starting smart login...")
+            # הפעלת הלוגין ב-Thread נפרד כדי לא לתקוע את השרת
+            threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
+    else:
+        # לוג שקט אחת ל-5 דקות רק כדי לוודא פעילות
+        if datetime.datetime.now().minute % 5 == 0:
+            logger.info("Eli connection verified (White anchor present).")   
+            
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=check_plc_status, trigger="interval", seconds=60)
 scheduler.add_job(func=check_eli_connection, trigger="interval", minutes=4)

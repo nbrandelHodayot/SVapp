@@ -6,7 +6,7 @@ COMPUTER_NAME = socket.gethostname().upper() # הופך הכל לאותיות ג
 SIMULATION_MODE = ("HOD2301-07" in COMPUTER_NAME) 
 
 # שנה ל-True כשאתה בבית, ול-False כשאתה בעבודה
-MOCK_MODE = True
+MOCK_MODE = False
 
 print(f"DEBUG: Computer Name is {COMPUTER_NAME}")
 print(f"DEBUG: Simulation Mode is {SIMULATION_MODE}")
@@ -15,6 +15,7 @@ print(f"DEBUG: Simulation Mode is {SIMULATION_MODE}")
 REMOTE_IP = "192.168.1.234"
 CONTROLLER_USERNAME = "Eli"
 CONTROLLER_PASSWORD = "66911"
+
 CGI_URL = f"http://{REMOTE_IP}/cgi-bin/remote_mouse.cgi"
 REFERER = f"http://{REMOTE_IP}/remote_control_full.html?pic_format=bmp"
 
@@ -102,8 +103,38 @@ COMMANDS = {
     "NAV_STATUS": {"x": 503,"y": 232, "n": "00010000000000000000"},
     "NAV_CONTROL": {"x": 503,"y": 367, "n": "00010000000000000000"},
     "NAV_SETTINGS": {"x": 504,"y": 502, "n": "00010000000000000000"},
+    
+    # --- פקודות ניווט בדף "סטטוס מערכות" י ---
+    "STATUS_BOYS":   {"x": 230, "y": 71, "n": CONTEXT_N["STATUS_BOYS"]},
+    "STATUS_GIRLS":  {"x": 169, "y": 65, "n": CONTEXT_N["STATUS_GIRLS"]},
+    "STATUS_PUBLIC": {"x": 101, "y": 68, "n": CONTEXT_N["STATUS_PUBLIC"]},
+    "STATUS_SHABBAT": {"x": 35, "y": 65, "n": CONTEXT_N["STATUS_SHABBAT"]},
+    
+    # --- פקודות ניווט בדף "בקרת אזורים" י ---
+    "BOYS_SPLIT":    {"x": 900, "y": 333, "n": CONTEXT_N["CONTROL_MENU"]},
+    "BOYS_GENERAL":  {"x": 900, "y": 444, "n": CONTEXT_N["CONTROL_MENU"]},
+    "BOYS_SHABBAT":  {"x": 900, "y": 555, "n": CONTEXT_N["CONTROL_MENU"]},
+
+    "GIRLS_SPLIT":   {"x": 640, "y": 333, "n": CONTEXT_N["CONTROL_MENU"]},
+    "GIRLS_GENERAL": {"x": 640, "y": 444, "n": CONTEXT_N["CONTROL_MENU"]},
+    "GIRLS_SHABBAT": {"x": 640, "y": 555, "n": CONTEXT_N["CONTROL_MENU"]},
+
+    "PUBLIC_SPLIT":   {"x": 400, "y": 333, "n": CONTEXT_N["CONTROL_MENU"]},
+    "PUBLIC_SHABBAT": {"x": 400, "y": 444, "n": CONTEXT_N["CONTROL_MENU"]},
+    "PUBLIC_D1_CANCEL": {"x": 400, "y": 555, "n": CONTEXT_N["CONTROL_MENU"]},
+
+    "CLUBS_BOYS":     {"x": 140, "y": 333, "n": CONTEXT_N["CONTROL_MENU"]},
+    "CLUBS_GIRLS":    {"x": 140, "y": 444, "n": CONTEXT_N["CONTROL_MENU"]},
+    "CLUBS_PUBLIC_LIB": {"x": 140, "y": 555, "n": CONTEXT_N["CONTROL_MENU"]},
+    
+    "CLUBS_PUBLIC_HOLLAND": {"x": 35, "y": 220, "n": CONTEXT_N["CLUBS_PUBLIC_LIB"]},
+    "CLUBS_PUBLIC_NATIV":   {"x": 35, "y": 270, "n": CONTEXT_N["CLUBS_PUBLIC_LIB"]},
+    "CLUBS_PUBLIC_DAVID":   {"x": 35, "y": 320, "n": CONTEXT_N["CLUBS_PUBLIC_LIB"]},
+    "CLUBS_PUBLIC_POLICE":  {"x": 35, "y": 370, "n": CONTEXT_N["CLUBS_PUBLIC_LIB"]},
+    "CLUBS_PUBLIC_ECONOMICS":{"x": 35, "y": 420, "n": CONTEXT_N["CLUBS_PUBLIC_LIB"]},
+   
        
-  # פקודות הפעלה בדף בקרת אזורים -אזור ציבורי -ביטול חיישן תנועה D1
+    # פקודות הפעלה בדף בקרת אזורים -אזור ציבורי -ביטול חיישן תנועה D1
     # ==כפתורי טוגל (רצועה 1 ו-2)==
     "D1_SHABBAT_TOGGLE": {"x": 93, "y": 248, "n": "00330000000000000000"}, #שעון ביטול חיישן בשבתות/חגים
     "D1_CLUBS_TOGGLE":   {"x": 96, "y": 451, "n": "00330000000000000000"}, # "אין כניסה למועדונים"
@@ -119,29 +150,47 @@ COMMANDS = {
     "D1_PUB_OFF":  {"x": 837, "y": 717, "n": "00330000000000000000"},    
 }
 
-# --- קואורדינטות טאבים (בתוך מסכי הסטטוס) ---
+# --- קואורדינטות טאבים ---
 TAB_COORDS = {
+    # --- קואורדינטות טאבים (בתוך מסכי הסטטוס) ---
     "TAB_BOYS":    {"x": 233, "y": 73},
     "TAB_GIRLS":   {"x": 168, "y": 73},
     "TAB_PUBLIC":  {"x": 102, "y": 73},
-    "TAB_SHABBAT": {"x": 36, "y": 73}
+    "TAB_SHABBAT": {"x": 36, "y": 73},
+    
+    # --- קואורדינטות טאבים (בתוך מסכי בקרת בנים ובקרת בנות) ---
+        "TAB_AC1": {"x": 265, "y": 117},
+    "TAB_AC2": {"x": 207, "y": 118},
+    "TAB_ROOMS": {"x": 150, "y": 117},
+    "TAB_WC": {"x": 92, "y": 118},
+    "TAB_HEATER": {"x": 33, "y": 118},
 }
 
-# --- כפתורי חזרה (Back) לפי הקשר ---
-BACK_CONFIG = {
-    "STATUS_BOYS":   {"x": 931, "y": 73, "n": "00500000000000000000"},
-    "STATUS_GIRLS":  {"x": 931, "y": 73, "n": "00510000000000000000"},
-    "STATUS_PUBLIC": {"x": 931, "y": 73, "n": "00520000000000000000"},
-    "STATUS_SHABBAT": {"x": 931, "y": 73, "n": "00540000000000000000"},
-}
+
+# =================================================================
+#            *** הגדרות פקודות חזרה (BACK_CONFIG) ***
+# =================================================================
+
+# הקואורדינטות הפיזיות של כפתור ה-BACK במסך של הבקר
+BACK_X = 931
+BACK_Y = 73
+
+# מפה זו קובעת לאן "יורה" כפתור החזרה.
+# אנחנו יוצרים אותה אוטומטית מתוך CONTEXT_N כדי שכל דף במערכת יוכל להיות "יעד" לחזרה.
+BACK_CONFIG = {}
+
+for key, n_value in CONTEXT_N.items():
+    BACK_CONFIG[key] = {
+        "x": BACK_X, 
+        "y": BACK_Y, 
+        "n": n_value
+    }
 
 # קואורדינטות כלליות (למשל כפתור בית)
 COMMON_COORDS = {
     "HOME_ICON": {"x": 20, "y": 20}
     }
     
-# config.py - הוסף את השורות הבאות בסוף הקובץ
-
 # הגדרות מקלדת עבור לוגין פיזי
 KBD_START_X = 120
 KBD_Y = 230
