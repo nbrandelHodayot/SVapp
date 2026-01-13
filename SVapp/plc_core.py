@@ -7,9 +7,12 @@ import random
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config_app as config
 import monitor_config
-import monitor_config as cfg
-import monitor_config as m_cfg
-from monitor_config import SHABBAT_CLOCKS_BASE_Y, SHABBAT_CLOCK_LAYOUT, DIGIT_MAPS, DIGIT_MAPS, TIME_BOXES, DIGIT_W, DIGIT_H
+from monitor_config import (
+    SHABBAT_CLOCKS_BASE_Y, SHABBAT_CLOCK_LAYOUT, DIGIT_MAPS, TIME_BOXES, 
+    DIGIT_W, DIGIT_H, SHABBAT_BASE_Y, SHABBAT_STEP_Y, START_TIME_X_OFFSETS, 
+    STOP_TIME_X_OFFSETS, STATUS_POINT_X, SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X,
+    START_TIME_X, STOP_TIME_X, SHABBAT_TIME_Y_BASE
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,20 +39,6 @@ BROWSER_HEADERS = {
 # 2. פונקציות עזר (צבעים ותמונות)
 # ==========================================
 
-def get_controller_time():
-    """משיכת השעה המדויקת שמופיעה על מסך הבקר"""
-    if getattr(config, 'SIMULATION_MODE', False):
-        return time.strftime("%H:%M:%S")
-    try:
-        resp = session.get(f"http://{config.REMOTE_IP}/remote_control_full.html", timeout=2)
-        if resp.status_code == 200:
-            match = re.search(r'(\d{2}:\d{2}:\d{2})', resp.text)
-            if match:
-                return match.group(1)
-    except:
-        pass
-    return None
-    
 def get_pixel_status(r, g, b):
     """זיהוי מצב נורה לפי צבע פיקסל (ירוק=ON, אדום=OFF)"""
     if g > 140 and r < 130 and b < 130: return "ON"
@@ -507,63 +496,7 @@ def parse_buildings_at(bw_img, y_row):
             active.append(name)
     return active
 
-def parse_shabbat_clocks(image):
-    """
-    מנתחת תמונה ומחזירה רשימת אובייקטים של שעוני שבת כולל סטטוס פעיל/כבוי.
-    """
-    if not image: return []
 
-    # המרה לשחור-לבן עבור פענוח ספרות וסימוני V
-    bw_img = image.convert('L').point(lambda x: 0 if x < 128 else 255, '1')
-    
-    results = []
-    for clock_cfg in monitor_config.SHABBAT_CLOCK_LAYOUT:
-        y = clock_cfg['y']
-        
-        # --- זיהוי סטטוס ON/OFF (לפי צבע בנקודה ספציפית) ---
-        # נדגום את הנקודה שבה אמורה להיות נורית הסטטוס (נניח X=290)
-        r, g, b = image.getpixel((290, y + 5))
-        is_on = (g > 150 and r < 120)  # אם הירוק דומיננטי -> פעיל
-        
-        results.append({
-            "is_on": is_on,
-            "on_time":    parse_time_at(bw_img, clock_cfg['on_x'], y),
-            "off_time":   parse_time_at(bw_img, clock_cfg['off_x'], y),
-            "days":        parse_days_at(bw_img, clock_cfg['days_x'], y),
-            "buildings":  parse_buildings_at(bw_img, y)
-        })
-    return results
-
-def get_digit_at(image, x, y):
-    """מזהה ספרה בודדת במיקום ספציפי"""
-    best_digit = "?"
-    max_score = -1
-    
-    # חותכים את הריבוע של הספרה (10x15)
-    digit_img = image.crop((x, y, x + DIGIT_W, y + DIGIT_H)).convert('L')
-    
-    for char, bitmap in DIGIT_MAPS.items():
-        score = 0
-        # הפיכת הביטמאפ לסט לבדיקה מהירה
-        black_pixels = set()
-        for row, cols in bitmap:
-            for col in cols:
-                black_pixels.add((col, row))
-        
-        # השוואה מול התמונה (פיקסל שחור < 128)
-        for py in range(DIGIT_H):
-            for px in range(DIGIT_W):
-                is_black_in_img = digit_img.getpixel((px, py)) < 128
-                is_black_in_map = (px, py) in black_pixels
-                
-                if is_black_in_img == is_black_in_map:
-                    score += 1
-        
-        if score > max_score:
-            max_score = score
-            best_digit = char
-            
-    return best_digit
 
 def parse_time_box(image, config_key):
     """סורק תיבת זמן שלמה (4 ספרות)"""
@@ -576,143 +509,19 @@ def parse_time_box(image, config_key):
     return res
     
 def update_shabbat_status():
-    image = fetch_plc_image()
+    """מעדכן סטטוס שעוני שבת - משתמש ב-parse_shabbat_clocks"""
+    image_data = fetch_plc_image()
+    if not image_data:
+        return {}
     
-    shabbat_data = {
-        "clock_1": {
-            "on_time": parse_time_box(image, "START_TIME"),
-            "off_time": parse_time_box(image, "STOP_TIME"),
-            "status": "ON" if check_is_green(image, 58, 254) else "OFF"
-        }
-    }
-    return shabbat_data
+    image = Image.open(io.BytesIO(image_data)).convert('RGB')
+    clocks = parse_shabbat_clocks(image)
+    
+    if clocks:
+        return {"clock_1": clocks[0]}
+    return {}
     
 
-def get_digit_from_image(image, x, y):
-    """מזהה ספרה בודדת במיקום X,Y לפי מפת הפיקסלים מה-PDF"""
-    best_match = "?"
-    max_score = -1
-    
-    # חיתוך ועיבוד ראשוני של הריבוע (10x15)
-    # נהפוך לאפור (L) כדי להקל על הבדיקה
-    digit_segment = image.crop((x, y, x + 10, y + 15)).convert('L')
-    
-    for digit, bitmap in m_cfg.DIGIT_MAPS.items():
-        score = 0
-        # הפיכת הביטמאפ לסט קואורדינטות של 'שחור'
-        target_pixels = set()
-        for row, cols in bitmap:
-            for col in cols:
-                target_pixels.add((col, row))
-        
-        # השוואה פיקסל-פיקסל
-        for py in range(15):
-            for px in range(10):
-                is_dark = digit_segment.getpixel((px, py)) < 128
-                is_should_be_dark = (px, py) in target_pixels
-                
-                if is_dark == is_should_be_dark:
-                    score += 1
-        
-        if score > max_score:
-            max_score = score
-            best_match = digit
-            
-    return best_match
-
-def parse_shabbat_clocks(image):
-    """
-    הפונקציה המרכזית שנסרקת על ידי השרת.
-    מחזירה רשימה של 4 שעונים בפורמט JSON.
-    """
-    if not image:
-        return []
-
-    clocks_results = []
-
-    for i in range(4):
-        current_y = m_cfg.SHABBAT_BASE_Y + (i * m_cfg.SHABBAT_STEP_Y)
-        
-        # 1. קריאת שעת הפעלה
-        on_time = ""
-        for x in m_cfg.START_TIME_X_OFFSETS:
-            on_time += get_digit_from_image(image, x, current_y)
-        on_time = f"{on_time[:2]}:{on_time[2:]}" # הוספת נקודתיים
-
-        # 2. קריאת שעת הפסקה
-        off_time = ""
-        for x in m_cfg.STOP_TIME_X_OFFSETS:
-            off_time += get_digit_from_image(image, x, current_y)
-        off_time = f"{off_time[:2]}:{off_time[2:]}"
-
-        # 3. בדיקת סטטוס כפתור (ON/OFF)
-        # נדגום את הנקודה (58, Y) ונבדוק אם היא ירוקה
-        pixel_color = image.getpixel((m_cfg.STATUS_POINT_X, current_y))
-        is_active = (pixel_color[1] > 200 and pixel_color[0] < 50) # בדיקה שהירוק דומיננטי
-
-        # 4. בניית האובייקט (תואם ל-Javascript ב-HTML שלך)
-        clocks_results.append({
-            "index": i + 1,
-            "on_time": on_time,
-            "off_time": off_time,
-            "is_active": is_active,
-            "buildings": [], # ניתן להוסיף כאן את parse_buildings_at אם תרצה
-            "days": []       # ניתן להוסיף כאן את parse_days_at
-        })
-
-    return clocks_results
-    
-def is_green(pixel):
-    """בודק אם פיקסל בטווח הירוק המוגדר"""
-    r, g, b = pixel
-    return r == 0 and 250 <= g <= 255 and b == 0
-
-def parse_shabbat_clocks(image):
-    if not image: return []
-    
-    results = []
-    # סריקת 4 רצועות שעון
-    for i in range(4):
-        offset = i * cfg.SHABBAT_STEP_Y
-        
-        # --- 1. זיהוי שעות (OCR) ---
-        # שעת הפעלה (Y קבוע 276 + אופסט)
-        on_time = "".join([get_digit_from_image(image, x, 276 + offset) for x in cfg.START_TIME_X])
-        # שעת הפסקה (Y קבוע 276 + אופסט)
-        off_time = "".join([get_digit_from_image(image, x, 276 + offset) for x in cfg.STOP_TIME_X])
-
-        # --- 2. זיהוי מבנים (Y התחלתי 229) ---
-        active_buildings = []
-        y_buildings = 229 + offset
-        for b_name, x in cfg.SHABBAT_BUILDINGS_X.items():
-            if is_green(image.getpixel((x, y_buildings))):
-                active_buildings.append(b_name)
-
-        # --- 3. זיהוי ימים (Y התחלתי 278) ---
-        active_days = []
-        y_days = 278 + offset
-        for day_name, x in cfg.SHABBAT_DAYS_X.items():
-            if is_green(image.getpixel((x, y_days))):
-                active_days.append(day_name)
-
-        # --- 4. מצב כפתור הפעלה כללי ---
-        # לפי הקוד הקודם שלך, נדגום את הנקודה (58, 276 + offset)
-        is_active = is_green(image.getpixel((58, 276 + offset)))
-
-        results.append({
-            "index": i + 1,
-            "on_time": f"{on_time[:2]}:{on_time[2:]}",
-            "off_time": f"{off_time[:2]}:{off_time[2:]}",
-            "is_active": is_active,
-            "buildings": active_buildings,
-            "days": active_days
-        })
-        
-    return results
-    
-# plc_core.py
-import monitor_config as cfg
-from monitor_config import DIGIT_MAPS # מפת הספרות מה-PDF
 
 def is_pixel_active_green(pixel):
     """בודק האם הפיקסל בטווח הירוק המדויק (0, 250-255, 0)"""
@@ -745,37 +554,37 @@ def get_digit_at(image, x, y):
     return best_digit
 
 def parse_shabbat_clocks(image):
-    """סורק את כל 4 שעוני השבת בדף"""
+    """סורק את כל 4 שעוני השבת בדף - הפונקציה המרכזית"""
     if not image: return []
     
     results = []
     for i in range(4):
-        offset = i * cfg.SHABBAT_STEP_Y
+        offset = i * SHABBAT_STEP_Y
         
         # 1. פענוח שעת הפעלה
-        on_time_raw = "".join([get_digit_at(image, x, cfg.SHABBAT_TIME_Y_BASE + offset) for x in cfg.START_TIME_X])
+        on_time_raw = "".join([get_digit_at(image, x, SHABBAT_TIME_Y_BASE + offset) for x in START_TIME_X])
         on_time = f"{on_time_raw[:2]}:{on_time_raw[2:]}"
         
         # 2. פענוח שעת הפסקה
-        off_time_raw = "".join([get_digit_at(image, x, cfg.SHABBAT_TIME_Y_BASE + offset) for x in cfg.STOP_TIME_X])
+        off_time_raw = "".join([get_digit_at(image, x, SHABBAT_TIME_Y_BASE + offset) for x in STOP_TIME_X])
         off_time = f"{off_time_raw[:2]}:{off_time_raw[2:]}"
 
         # 3. בדיקת מבנים (Y=229 + offset)
         active_buildings = []
         y_b = 229 + offset
-        for name, x in cfg.SHABBAT_BUILDINGS_X.items():
+        for name, x in SHABBAT_BUILDINGS_X.items():
             if is_pixel_active_green(image.getpixel((x, y_b))):
                 active_buildings.append(name)
 
         # 4. בדיקת ימים (Y=278 + offset)
         active_days = []
         y_d = 278 + offset
-        for day, x in cfg.SHABBAT_DAYS_X.items():
+        for day, x in SHABBAT_DAYS_X.items():
             if is_pixel_active_green(image.getpixel((x, y_d))):
                 active_days.append(day)
 
         # 5. סטטוס כפתור הפעלה (נקודה 58, 276)
-        is_active = is_pixel_active_green(image.getpixel((58, cfg.SHABBAT_TIME_Y_BASE + offset)))
+        is_active = is_pixel_active_green(image.getpixel((STATUS_POINT_X, SHABBAT_TIME_Y_BASE + offset)))
 
         results.append({
             "index": i + 1,

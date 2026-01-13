@@ -257,8 +257,8 @@ SHABBAT_CLOCK_SPACING = 25   # המרחק בין תחילת שעון אחד לש
 
 NAV_MAP = {
     "BOYS_SHABBAT": "control_boys_shabbat.html",
-    "GIRLS_SHABBAT": "control_girls_shabbat.html"'
-     "PUBLIC_SHABBAT": "control_public_shabbat.html"
+    "GIRLS_SHABBAT": "control_girls_shabbat.html",
+    "PUBLIC_SHABBAT": "control_public_shabbat.html"
 }
 
 # הגדרת מבנה השעונים (לפי הניתוח שעשינו)
