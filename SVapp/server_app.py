@@ -100,7 +100,7 @@ def login_page():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login_page'))
+    return redirect(url_for('login'))
 
 @app.route('/status/<area>')
 def status_page(area):
@@ -133,21 +133,29 @@ def status_shabbat():
 @app.route('/api/status/shabbat')
 @login_required
 def get_shabbat_status():
-    """
-    API המחזיר נתוני שעוני שבת לפי ההקשר (Context) שנשלח מה-Frontend.
-    """
-    ctx = request.args.get('context')
-    if not ctx:
-        return jsonify({"success": False, "error": "No context provided"}), 400
-        
-    # קריאה לפונקציית הליבה
-    data = plc_core.get_shabbat_status_data(ctx)
+    context = request.args.get('context', 'BOYS_SHABBAT_AC1')
+    area = 'boys' if 'BOYS' in context.upper() else 'girls'
     
-    if data.get("success"):
-        return jsonify(data), 200
-    else:
-        return jsonify(data), 500
+    # שימוש בפונקציה הייעודית החדשה
+    data = plc_core.fetch_shabbat_data(area, context)
+    
+    if not data["image"]:
+        return jsonify({"error": "Could not fetch image from PLC"}), 500
 
+    try:
+        # שליחה ל-OCR/ניתוח
+        result = parse_shabbat_clocks(data["image"]) 
+        # הזרקת הסטטוסים (ON/OFF) לתוך התוצאה
+        result["clocks_status"] = data["status_points"]
+        result["server_time"] = data["time"]
+        
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Failed to parse shabbat clocks: {e}")
+        return jsonify({"error": str(e)}), 500
+        
+        
+        
 # =========================================================================
 # 4. ליבת השליטה (Control Hub) - לוגיקה מלאה
 # =========================================================================
@@ -277,7 +285,7 @@ def trigger_auto_back():
 
         page_key = N_TO_PAGE_NAME.get(actual_n) or page_hint
         if page_key == "MAIN":
-            return jsonify({"status": "success", "page": "MAIN"})
+            return jsonify({"status": "success", "page": "login"})
 
         back_cmd = config.BACK_CONFIG.get(page_key)
         if back_cmd:
@@ -289,11 +297,28 @@ def trigger_auto_back():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # =========================================================================
-# 6. הגנה וניווט דינמי
+# 6. הגנה, ניווט וחוסר פעילות
 # =========================================================================
 
 @app.before_request
-def block_navigation_if_not_connected():
+def handle_session_and_protection():
+    # 1. בדיקת חוסר פעילות (Inactivity Timeout)
+    if request.endpoint not in ['login', 'static', 'logout_timeout']:
+        if 'user' in session:
+            last_activity = session.get('last_activity')
+            if last_activity:
+                last_time = datetime.datetime.fromisoformat(last_activity)
+                elapsed = (datetime.datetime.now() - last_time).total_seconds()
+                
+                if elapsed > config.INACTIVITY_TIMEOUT:
+                    logger.info(f"Session timeout for {session['user']}. Redirecting to login.")
+                    session.clear()
+                    return redirect(url_for('login_page'))
+            
+            # עדכון זמן פעילות אחרון
+            session['last_activity'] = datetime.datetime.now().isoformat()
+
+    # 2. הגנה על נתיבים (רק אם אלי לא מחובר)
     if getattr(config, 'SIMULATION_MODE', False): return None
     PROTECTED_ROUTES = ['nav_control', 'nav_settings']
     
@@ -301,52 +326,58 @@ def block_navigation_if_not_connected():
         page_name = request.view_args.get('page_name', '')
         if any(protected in page_name for protected in PROTECTED_ROUTES):
             if not plc_core.is_eli_physically_connected():
-                logger.warning(f"Unauthorized access attempt to {page_name} (Eli not connected)")
-                # כאן אפשר להוסיף redirect אם רוצים חסימה קשיחה
+                logger.warning(f"Unauthorized access to {page_name} (Eli not connected)")
+                return redirect(url_for('index')) # או דף אחר לבחירתך
     return None
 
 @app.route('/<path:page_name>')
 @login_required
 def serve_html_pages(page_name):
     if not page_name.endswith('.html'): page_name += '.html'
-    
-    # חיפוש הקובץ בתיקיות השונות (סטטוס, בקרה, ראשי)
     search_locations = [page_name, f"status/{page_name}", f"control/{page_name}"]
     
     for location in search_locations:
         full_path = os.path.join(app.template_folder, location)
         if os.path.exists(full_path):
             return render_template(location)
-    
     return f"הדף {page_name} לא נמצא", 404
 
-# =========================================================================
-# 7. מתזמן (Scheduler)
-# =========================================================================
-
-def check_eli_connection():
-    """משימת רקע שמוודאת חיבור Eli ומתקנת במידת הצורך"""
-    global is_login_running
+@app.route('/api/set_plc_page')
+@login_required
+def set_plc_page():
+    action_key = request.args.get('n') 
+    tab_param = request.args.get('current_tab', 'AC1').upper()
+    area = request.args.get('area', 'boys').upper()
     
-    if getattr(config, 'SIMULATION_MODE', False):
-        return
-
-    # הקריאה לפונקציה החדשה שבודקת את הפיקסלים הלבנים
-    is_connected = plc_core.is_eli_physically_connected()
-    
-    if not is_connected:
-        if not is_login_running:
-            logger.info("Scheduler detected DISCONNECT (Anchor pixels missing). Starting smart login...")
-            # הפעלת הלוגין ב-Thread נפרד כדי לא לתקוע את השרת
-            threading.Thread(target=plc_core.smart_login_sequence, daemon=True).start()
+    # אם אנחנו לא בטאב ספציפי (למשל בדף הבית), נשתמש ב-N הכללי של האזור
+    if tab_param == 'INDEX' or not tab_param:
+        current_context_key = f"STATUS_{area}"
     else:
-        # לוג שקט אחת ל-5 דקות רק כדי לוודא פעילות
-        if datetime.datetime.now().minute % 5 == 0:
-            logger.info("Eli connection verified (White anchor present).")   
-            
+        current_context_key = f"{area}_SHABBAT_{tab_param}"
+    
+    current_n = config.CONTEXT_N.get(current_context_key)
+    coords = config.TAB_COORDS.get(f"TAB_{action_key.upper()}")
+
+    if not current_n or not coords:
+        logger.error(f"Missing mapping for {current_context_key} or {action_key}")
+        return jsonify({"success": False, "error": "Navigation mapping missing"}), 400
+
+    success = plc_core.send_physical_click(coords['x'], coords['y'], n=current_n)
+    return jsonify({"success": success, "target_tab": action_key})
+    
+# =========================================================================
+# 7. מתזמן (Scheduler) - ללא לוגין אוטומטי
+# =========================================================================
+
+@app.route('/logout_timeout')
+def logout_timeout():
+    session.clear()
+    flash("נותקת עקב חוסר פעילות", "warning")
+    return redirect(url_for('login'))
+
+# יצרנו את ה-Scheduler רק עבור עדכון נוריות סטטוס כלליות
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=check_plc_status, trigger="interval", seconds=60)
-scheduler.add_job(func=check_eli_connection, trigger="interval", minutes=4)
 scheduler.start()
 
 # =========================================================================

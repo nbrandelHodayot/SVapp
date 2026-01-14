@@ -2,16 +2,16 @@ import sys, os, requests, time, re, logging, io
 from PIL import Image
 from requests.auth import HTTPBasicAuth
 import random
+import datetime
 
 # הוספת נתיב העבודה כדי למנוע שגיאות Import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import config_app as config
+import config_app
 import monitor_config
 from monitor_config import (
-    SHABBAT_CLOCKS_BASE_Y, SHABBAT_CLOCK_LAYOUT, DIGIT_MAPS, TIME_BOXES, 
-    DIGIT_W, DIGIT_H, SHABBAT_BASE_Y, SHABBAT_STEP_Y, START_TIME_X_OFFSETS, 
-    STOP_TIME_X_OFFSETS, STATUS_POINT_X, SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X,
-    START_TIME_X, STOP_TIME_X, SHABBAT_TIME_Y_BASE
+    SHABBAT_TIME_Y_BASE, SHABBAT_STEP_Y, START_TIME_X, STOP_TIME_X,
+    DIGIT_W, DIGIT_H, DIGIT_MAPS, PLC_GREEN, STATUS_POINT_X,
+    SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X, SHABBAT_CLOCK_LAYOUT
 )
 
 logger = logging.getLogger(__name__)
@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 # ==========================================
 
 # המילון ההפוך שמאפשר לשרת לדעת איזה דף מוצג לפי ה-N שמתקבל מהבקר
-N_TO_PAGE_NAME = {v: k for k, v in config.CONTEXT_N.items()}
+N_TO_PAGE_NAME = {v: k for k, v in config_app.CONTEXT_N.items()}
 
 # הגדרת Session לחיבור רציף ומהיר מול הבקר
 session = requests.Session()
-session.auth = HTTPBasicAuth(config.CONTROLLER_USERNAME, config.CONTROLLER_PASSWORD)
+session.auth = HTTPBasicAuth(config_app.CONTROLLER_USERNAME, config_app.CONTROLLER_PASSWORD)
 
 # Headers שמחקים דפדפן כדי למנוע חסימות מהבקר
 BROWSER_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Referer": config.REFERER,
+    "Referer": config_app.REFERER,
     "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Connection": "keep-alive"
 }
@@ -48,7 +48,7 @@ def get_pixel_status(r, g, b):
 def fetch_plc_image():
     """משיכת צילום מסך מהבקר עם חתימת זמן למניעת Cache"""
     timestamp = int(time.time() * 1000)
-    url = f"http://{config.REMOTE_IP}/CF/CAPTURE/CapVGA.BMP?d={timestamp}"
+    url = f"http://{config_app.REMOTE_IP}/CF/CAPTURE/CapVGA.BMP?d={timestamp}"
     try:
         response = session.get(url, headers=BROWSER_HEADERS, timeout=5)
         if response.status_code == 200 and len(response.content) > 5000:
@@ -61,7 +61,7 @@ def fetch_plc_image():
 def get_plc_system_time():
     """משיכת השעה המדויקת מהבקר (לשעון ב-Web)"""
     try:
-        res = session.get(f"http://{config.REMOTE_IP}/detail.html", timeout=5)
+        res = session.get(f"http://{config_app.REMOTE_IP}/detail.html", timeout=5)
         match = re.search(r'\d{2}:\d{2}:\d{2}', res.text)
         return match.group(0) if match else None
     except Exception as e:
@@ -71,7 +71,7 @@ def get_plc_system_time():
 def get_plc_screenshot():
     """משיכת תמונת המסך הנוכחית מהבקר לצורך פענוח"""
     try:
-        url = f"http://{config.REMOTE_IP}/remote_control_full.html?pic_format=bmp"
+        url = f"http://{config_app.REMOTE_IP}/remote_control_full.html?pic_format=bmp"
         resp = session.get(url, timeout=5)
         if resp.status_code == 200:
             return Image.open(io.BytesIO(resp.content))
@@ -86,36 +86,33 @@ def get_plc_screenshot():
 # 3. ליבת השליטה (קואורדינטות ולחיצות)
 # ==========================================
 
-def send_physical_click(x, y, n_value, debug_name="Unknown"):
-    """הפונקציה הבסיסית ששולחת את פקודת ה-CGI לבקר"""
-    url = f"http://{config.REMOTE_IP}/cgi-bin/remote_mouse.cgi?pos_x={x},pos_y={y},n={n_value}"
-    try:
-        response = session.get(url, headers={"Referer": config.REFERER}, timeout=10)
-        logger.info(f"Click Sent: {debug_name} ({x}, {y}) [N={n_value}]")
+def send_physical_click(x, y, n, debug_name="Unknown"):
+    """
+    שולחת פקודת לחיצה פיזית לבקר.
+    x, y: קואורדינטות הלחיצה.
+    n: הקונטקסט (הדף) שבו הלחיצה צריכה להתבצע.
+    """
+    if getattr(config_app, 'SIMULATION_MODE', False):
+        logger.info(f"[SIMULATION] Click at ({x}, {y}) with N={n} [{debug_name}]")
         return {"status": "success"}, 200
+
+    # בניית ה-URL עם הפרמטרים הנכונים עבור הבקר
+    url = f"http://{config_app.REMOTE_IP}/cgi-bin/remote_mouse.cgi?pos_x={x},pos_y={y},n={n}"
+    
+    try:
+        # שליחת הבקשה עם ה-Referer שהבקר דורש
+        response = session.get(url, headers={"Referer": config_app.REFERER}, timeout=10)
+        
+        if response.ok:
+            logger.info(f"Click Sent: {debug_name} ({x}, {y}) [N={n}]")
+            return {"status": "success"}, 200
+        else:
+            logger.error(f"PLC returned error: {response.status_code} for {debug_name}")
+            return {"status": "error", "message": f"PLC Error {response.status_code}"}, 500
+            
     except Exception as e:
         logger.error(f"Click failed {debug_name}: {e}")
         return {"status": "error", "message": str(e)}, 500
-
-
-
-def get_controller_time():
-    """שליפת השעה הנוכחית מהבקר בצורה אמינה"""
-    if getattr(config, 'SIMULATION_MODE', False):
-        return time.strftime("%H:%M:%S")
-
-    try:
-        # פנייה לדף הסטטוס שבו השעה מופיעה בטקסט
-        resp = session.get(f"http://{config.REMOTE_IP}/remote_control_full.html", timeout=2)
-        if resp.status_code == 200:
-            match = re.search(r'(\d{2}:\d{2}:\d{2})', resp.text)
-            if match:
-                return match.group(1)
-    except Exception as e:
-        logger.debug(f"Could not fetch time from PLC: {e}")
-    
-    return None
-
 
 # ==========================================
 # 4. ניהול סטטוס וסריקת נורות
@@ -125,7 +122,7 @@ def get_multi_status(points_dict, n_val):
     """מעדכן את הבקר לדף מסוים וסורק רשימת נקודות"""
     try:
         # פקודה שקטה כדי לוודא שהבקר בדף הנכון לפני הצילום
-        session.get(f"http://{config.REMOTE_IP}/cgi-bin/remote_mouse.cgi?pos_x=1,pos_y=1&n={n_val}", timeout=2)
+        session.get(f"http://{config_app.REMOTE_IP}/cgi-bin/remote_mouse.cgi?pos_x=1,pos_y=1&n={n_val}", timeout=2)
         time.sleep(0.8)
     except: pass
     
@@ -147,32 +144,18 @@ def get_multi_status(points_dict, n_val):
 
 def fetch_plc_status(area):
     """
-    מביא סטטוס נורות. 
-    במצב סימולציה (בבית): מחזיר נתונים אקראיים לעיצוב.
-    במצב אמת (במשרד): ניגש לבקר.
+    פונקציה מקורית ויציבה לדפי סטטוס (נורות).
+    מחזירה מילון שטוח של ON/OFF בלבד.
     """
     area_upper = area.upper()
     area_lower = area.lower()
 
-    # --- שלב א: בדיקה האם אנחנו בבית (Simulation Mode) ---
-    if getattr(config, 'SIMULATION_MODE', False):
-        # אנחנו בבית! נחפש את רשימת הנקודות רק כדי לדעת אילו שמות של נורות להמציא
-        p_root = getattr(monitor_config, f"MONITOR_POINTS_STATUS_{area_upper}", 
-                 getattr(monitor_config, f"MONITOR_POINTS_{area_upper}", {}))
-        
-        # חילוץ המילון (טיפול במבנה מקונן)
+    if getattr(config_app, 'SIMULATION_MODE', False):
+        p_root = getattr(monitor_config, f"MONITOR_POINTS_STATUS_{area_upper}", {})
         points_dict = p_root.get(area_lower, p_root) if isinstance(p_root, dict) else {}
+        return {name: random.choice(["ON", "OFF"]) for name in points_dict.keys()}
 
-        if points_dict:
-            # מייצרים סטטוס אקראי לכל נורה קיימת בקונפיג
-            return {name: random.choice(["ON", "OFF"]) for name in points_dict.keys()}
-        else:
-            # אם אפילו בקונפיג אין נקודות, נחזיר כמה נורות גנריות כדי שלא תראה דף ריק בעיצוב
-            return {"demo_light_1": "ON", "demo_light_2": "OFF", "demo_light_3": "ON"}
-
-    # --- שלב ב: מצב אמת (רק אם SIMULATION_MODE = False) ---
-    
-    # חיפוש הגדרות
+    # מצב אמת - קריאה לסטטוס נורות
     possible_attr_names = [f"MONITOR_POINTS_STATUS_{area_upper}", f"MONITOR_POINTS_{area_upper}"]
     p_root = {}
     for attr in possible_attr_names:
@@ -180,18 +163,48 @@ def fetch_plc_status(area):
         if p_root: break
 
     p = p_root.get(area_lower, p_root) if isinstance(p_root, dict) else {}
-    n = config.CONTEXT_N.get(f"STATUS_{area_upper}")
+    n = config_app.CONTEXT_N.get(f"STATUS_{area_upper}")
 
     if not n or not p:
         return {}
 
     try:
-        # פונקציית הסריקה האמיתית שמדברת עם הבקר
         return get_multi_status(p, n)
     except Exception as e:
         logger.error(f"Real-time scan failed: {e}")
         return {}
 
+def fetch_shabbat_data(area, context_key):
+    """
+    מושכת תמונה מהבקר ומפענחת את כל נתוני שעוני השבת עבור הטאב הנבחר.
+    """
+    import datetime as dt
+    area_upper = area.upper()
+    img = None
+    
+    try:
+        # 1. משיכת התמונה העדכנית מהבקר
+        response = session.get(config_app.CGI_URL, timeout=5)
+        if response.status_code == 200 and len(response.content) > 0:
+            img = Image.open(io.BytesIO(response.content)).convert('RGB')
+        else:
+            logger.error(f"Failed to fetch image from PLC: Status {response.status_code}")
+            return {"clocks": [], "time": "--:--", "error": "Connection error"}
+
+        # 2. פענוח נתוני השעונים (זמנים, ימים ומבנים)
+        clocks_list = parse_shabbat_clocks(img)
+
+        # 3. החזרת הנתונים ל-Frontend
+        return {
+            "clocks": clocks_list, # הרשימה שסרקנו
+            "time": dt.datetime.now().strftime("%H:%M:%S"),
+            "area": area_upper
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching shabbat data: {e}")
+        return {"clocks": [], "time": "--:--", "error": str(e)}
+        
 # ==========================================
 # 5. לוגיקת לוגין וזיהוי מסך
 # ==========================================
@@ -202,11 +215,11 @@ def get_screen_n_by_pixel_check():
     if not img_data: return None
     try:
         img = Image.open(io.BytesIO(img_data)).convert('RGB')
-        for page_name, sig in config.PAGE_SIGNATURES.items():
+        for page_name, sig in config_app.PAGE_SIGNATURES.items():
             r, g, b = img.getpixel((sig["x"], sig["y"]))
             color = sig["color"]
             if abs(r-color[0]) < 10 and abs(g-color[1]) < 10 and abs(b-color[2]) < 10:
-                return config.CONTEXT_N.get(page_name)
+                return config_app.CONTEXT_N.get(page_name)
         return None
     except: return None
 
@@ -216,7 +229,7 @@ def is_eli_physically_connected():
     מחובר: X=270 (16-27) לבן  ו- X=284 (20-27) אפור.
     מנותק: X=270 (16-19) אפור ו- X=284 (20-27) לבן.
     """
-    if getattr(config, 'SIMULATION_MODE', False):
+    if getattr(config_app, 'SIMULATION_MODE', False):
         return True
 
     try:
@@ -253,15 +266,15 @@ def is_eli_physically_connected():
         return False
 
 def get_coords_dynamic(action):
-    """מפענח פעולה לקואורדינטות - סדר עדיפויות מתוקן"""
+    """מפענח פעולה לקואורדינטות - כולל תמיכה בטאבים של שעוני שבת"""
     if not action: return None
 
-    # א. כפתורי מערכת קבועים (צריך להיות ראשון כדי שלא יידרס ע"י BACK)
+    # א. כפתורי מערכת קבועים
     special = {
-        "WAKE_UP": {"x": 509, "y": 391, "n": config.CONTEXT_N.get("WAKE_UP")},
-        "USER_BUTTON": {"x": 218, "y": 20, "n": config.CONTEXT_N.get("MAIN")},
-        "DOWN_ARROW": {"x": 520, "y": 140, "n": config.CONTEXT_N.get("LOGIN")},
-        "KEY_ENT": {"x": 480, "y": 398, "n": config.CONTEXT_N.get("LOGIN")}
+        "WAKE_UP": {"x": 509, "y": 391, "n": config_app.CONTEXT_N.get("WAKE_UP")},
+        "USER_BUTTON": {"x": 218, "y": 20, "n": config_app.CONTEXT_N.get("MAIN")},
+        "DOWN_ARROW": {"x": 520, "y": 140, "n": config_app.CONTEXT_N.get("LOGIN")},
+        "KEY_ENT": {"x": 480, "y": 398, "n": config_app.CONTEXT_N.get("LOGIN")}
     }
     if action in special:
         return special[action]
@@ -273,41 +286,55 @@ def get_coords_dynamic(action):
             num = int(digit)
             pos = num if num != 0 else 10
             return {
-                "x": config.KBD_START_X + ((pos - 1) * config.KBD_STEP),
-                "y": config.KBD_Y,
-                "n": config.CONTEXT_N.get("LOGIN")
+                "x": config_app.KBD_START_X + ((pos - 1) * config_app.KBD_STEP),
+                "y": config_app.KBD_Y,
+                "n": config_app.CONTEXT_N.get("LOGIN")
             }
 
-    # ג. ניווט טאבים (CONTEXT/TAB)
+    # ג. ניווט טאבים או פקודות מורכבות (CONTEXT/SUB_ACTION)
     if "/" in action:
         try:
             context_name, sub_action = action.split("/", 1)
-            target_n = config.CONTEXT_N.get(context_name)
-            tab_coords = getattr(config, 'TAB_COORDS', {})
-            commands = getattr(config, 'COMMANDS', {})
+            target_n = config_app.CONTEXT_N.get(context_name)
+            
+            # חיפוש הקואורדינטות בטאבים או בפקודות
+            tab_coords = getattr(config_app, 'TAB_COORDS', {})
+            commands = getattr(config_app, 'COMMANDS', {})
             coords = tab_coords.get(sub_action) or commands.get(sub_action)
-            if coords and target_n:
-                return {"x": coords["x"], "y": coords["y"], "n": target_n}
-        except: pass
+            
+            if coords:
+                res = coords.copy()
+                # אם ה-N לא מוגדר בטאב עצמו, ניקח את ה-N של הקונטקסט
+                if 'n' not in res:
+                    res['n'] = target_n
+                return res
+        except Exception as e:
+            logger.error(f"Error parsing complex action {action}: {e}")
 
-    # ד. בדיקה במילונים סטטיים (BUTTONS / COMMANDS)
-    buttons = getattr(config, 'BUTTONS', {})
-    commands = getattr(config, 'COMMANDS', {})
-    static_btn = buttons.get(action) or commands.get(action)
+    # ד. בדיקה במילונים סטטיים (TAB_COORDS, BUTTONS, COMMANDS)
+    # הוספנו כאן את TAB_COORDS כדי לאפשר לחיצה ישירה אם נשלח רק 'TAB_AC1'
+    tab_coords = getattr(config_app, 'TAB_COORDS', {})
+    buttons = getattr(config_app, 'BUTTONS', {})
+    commands = getattr(config_app, 'COMMANDS', {})
+    
+    static_btn = tab_coords.get(action) or buttons.get(action) or commands.get(action)
+    
     if static_btn:
         res = static_btn.copy()
         if 'n' not in res:
-            res['n'] = config.CONTEXT_N.get(action, config.CONTEXT_N.get("MAIN"))
+            # ברירת מחדל ל-N אם לא צוין
+            res['n'] = config_app.CONTEXT_N.get(action, config_app.CONTEXT_N.get("MAIN"))
         return res
 
-    # ה. פקודת חזרה (רק אם שום דבר אחר לא התאים)
+    # ה. פקודת חזרה
     if action.startswith("BACK_"):
         clean_action = action.replace("BACK_", "")
-        back_config = getattr(config, 'BACK_CONFIG', {})
+        back_config = getattr(config_app, 'BACK_CONFIG', {})
         target = back_config.get(clean_action)
         if target: return target
 
     return None
+    
 
 def send_physical_click_by_action(action_name, context_name=None):
     """ביצוע לחיצה עם ניהול N חכם - גרסה חסינה"""
@@ -323,9 +350,9 @@ def send_physical_click_by_action(action_name, context_name=None):
     # חישוב ה-N הנכון
     n_val = coords.get('n')
     if not n_val and context_name:
-        n_val = config.CONTEXT_N.get(context_name)
+        n_val = config_app.CONTEXT_N.get(context_name)
     if not n_val:
-        n_val = get_screen_n_by_pixel_check() or config.CONTEXT_N.get("MAIN")
+        n_val = get_screen_n_by_pixel_check() or config_app.CONTEXT_N.get("MAIN")
 
     logger.info(f"CLICK: {action_name} at ({x}, {y}) | N: {n_val}")
     
@@ -364,7 +391,7 @@ def read_shabbat_clock_time(img, clock_index, type="ON"):
     img: אובייקט התמונה מהבקר
     clock_index: 0-3 (עבור שעונים א-ד)
     """
-    if config.SIMULATION_MODE:
+    if config_app.SIMULATION_MODE:
         return "08:00" if type == "ON" else "16:30"
 
     base_y = SHABBAT_CLOCKS_BASE_Y[clock_index]
@@ -412,7 +439,7 @@ def get_shabbat_status_data(context_name):
     """
     פונקציית מעטפת: ניווט לדף הנכון בבקר, צילום ופענוח.
     """
-    target_n = config.CONTEXT_N.get(context_name)
+    target_n = config_app.CONTEXT_N.get(context_name)
     if not target_n:
         return {"success": False, "error": f"Context {context_name} unknown"}
 
@@ -496,7 +523,42 @@ def parse_buildings_at(bw_img, y_row):
             active.append(name)
     return active
 
+def is_pixel_active_green(pixel):
+    """בודק האם הפיקסל בטווח הירוק המדויק (0, 250-255, 0)"""
+    r, g, b = pixel
+    return r == 0 and 250 <= g <= 255 and b == 0
 
+def get_digit_at(img, x_start, y_start):
+    best_digit = "?"
+    max_score = -1
+    
+    # דגימה מהירה של האזור (10x15)
+    actual = []
+    for r in range(15):
+        for c in range(10):
+            p = img.getpixel((x_start + c, y_start + r))
+            actual.append(1 if sum(p) < 400 else 0) # סף רגישות גבוה יותר
+
+    for digit, pattern in monitor_config.DIGIT_MAPS.items():
+        score = 0
+        pattern_flat = [0] * 150
+        # הפיכת ה-pattern לרשימה שטוחה להשוואה מהירה
+        for row_idx, cols in pattern:
+            for c in cols:
+                if 0 <= c < 10: pattern_flat[row_idx * 10 + c] = 1
+        
+        # חישוב דמיון
+        for i in range(150):
+            if actual[i] == pattern_flat[i]:
+                score += 1
+            elif pattern_flat[i] == 1 and actual[i] == 0:
+                score -= 0.5 # קנס על פיקסל חסר
+
+        if score > max_score:
+            max_score = score
+            best_digit = digit
+
+    return best_digit if max_score > 110 else "?" # דורש לפחות 75% התאמה
 
 def parse_time_box(image, config_key):
     """סורק תיבת זמן שלמה (4 ספרות)"""
@@ -508,6 +570,42 @@ def parse_time_box(image, config_key):
         if i == 1: res += ":" # הוספת נקודתיים בפורמט HH:MM
     return res
     
+def parse_shabbat_clocks(image):
+    """
+    סורקת את כל 4 שעוני השבת בדף ומחזירה רשימה מסודרת של הנתונים.
+    """
+    if not image:
+        return []
+    
+    results = []
+    
+    for i in range(4):
+        # חישוב ה-Y המדויק לכל שעון לפי ה-Step של 145 פיקסלים
+        current_offset = i * monitor_config.SHABBAT_STEP_Y
+        
+        # שימוש בפונקציה שכבר הוספת לסריקת נתוני שעון בודד
+        clock_data = scan_shabbat_clock(image, current_offset)
+        
+        # הוספת אינדקס (1-4) וסטטוס פעולה (נורה ירוקה)
+        # נדגום את הסטטוס לפי הקואורדינטות שסיכמנו (STATUS_POINT_X, SHABBAT_TIME_Y_BASE)
+        try:
+            status_pixel = image.getpixel((monitor_config.STATUS_POINT_X, monitor_config.SHABBAT_TIME_Y_BASE + current_offset))
+            is_on = is_pixel_active_green(status_pixel)
+        except:
+            is_on = False
+            
+        # בניית האובייקט בפורמט שה-HTML שלך מכיר
+        results.append({
+            "index": i + 1,
+            "on_time": clock_data["start"],     # 'start' מהפונקציה scan_shabbat_clock
+            "off_time": clock_data["stop"],      # 'stop' מהפונקציה scan_shabbat_clock
+            "is_on": is_on,
+            "buildings": clock_data["buildings"],
+            "days": clock_data["days"]
+        })
+        
+    return results
+
 def update_shabbat_status():
     """מעדכן סטטוס שעוני שבת - משתמש ב-parse_shabbat_clocks"""
     image_data = fetch_plc_image()
@@ -521,77 +619,90 @@ def update_shabbat_status():
         return {"clock_1": clocks[0]}
     return {}
     
-
-
-def is_pixel_active_green(pixel):
-    """בודק האם הפיקסל בטווח הירוק המדויק (0, 250-255, 0)"""
-    r, g, b = pixel
-    return r == 0 and 250 <= g <= 255 and b == 0
-
-def get_digit_at(image, x, y):
-    """מזהה ספרה בודדת בשיטת Template Matching"""
-    best_digit = "?"
-    max_score = -1
+def check_heater_buildings(img, offset_y):
+    active = []
+    # נבדוק נקודת אמצע בתוך הטווח שנתת (למשל Y=230 + ה-offset של השעון)
+    for name, coords in monitor_config.HEATER_BUILDINGS.items():
+        target_y = 230 + offset_y 
+        pixel = img.getpixel((coords["x_range"][0], target_y))
+        if is_pixel_active_green(pixel):
+            active.append(name)
+    return active
     
-    # חיתוך ריבוע הספרה
-    digit_img = image.crop((x, y, x + 10, y + 15)).convert('L')
+def get_current_n():
+    """
+    בודק מהו ה-N (מזהה הדף) הנוכחי שמוצג בבקר
+    """
+    try:
+        # שליחת בקשה קלה לבקר לקבלת המצב הנוכחי
+        response = session.get(f"http://{config_app.REMOTE_IP}/remote_control_full.html", timeout=3)
+        # חיפוש ה-N בתוך ה-HTML של הבקר (בד"כ מופיע ב-Value של ה-Input)
+        match = re.search(r'name="n"\s+value="([0-9A-F]+)"', response.text)
+        if match:
+            return match.group(1)
+    except Exception as e:
+        logger.error(f"Failed to get current N: {e}")
+    return "UNKNOWN"
     
-    for digit, bitmap in DIGIT_MAPS.items():
-        score = 0
-        expected_pixels = set()
-        for row, cols in bitmap:
-            for col in cols: expected_pixels.add((col, row))
+def get_controller_time():
+    import datetime as dt
+    try:
+        # שימוש בפונקציה שבאמת מושכת זמן מהבקר
+        plc_time = get_plc_system_time()
+        if plc_time:
+            return plc_time
+        return dt.datetime.now().strftime("%H:%M:%S")
+    except Exception as e:
+        logger.error(f"Error in get_controller_time: {e}")
+        return dt.datetime.now().strftime("%H:%M:%S")
+        
+        
+def scan_shabbat_clock(img, offset_y):
+    """סורקת שעון בודד לפי היסט ה-Y שלו"""
+    
+    # 1. פענוח זמנים (OCR)
+    def get_time_string(x_list):
+        digits = []
+        for x in x_list:
+            # גזירת אזור הספרה מהתמונה
+            digit_box = img.crop((x, SHABBAT_TIME_Y_BASE + offset_y, 
+                                  x + DIGIT_W, SHABBAT_TIME_Y_BASE + offset_y + DIGIT_H))
+            digit = recognize_digit(digit_box)
+            digits.append(digit if digit else "?")
+        
+        # בניית פורמט HH:MM (למשל 0800 -> 08:00)
+        res = "".join(digits)
+        return f"{res[:2]}:{res[2:]}" if len(res) == 4 else "--:--"
+
+    start_time = get_time_string(START_TIME_X)
+    stop_time = get_time_string(STOP_TIME_X)
+
+    # 2. בדיקת ימים פעילים
+    active_days = []
+    for day, x in SHABBAT_DAYS_X.items():
+        # בודק פיקסל בודד במיקום היום
+        pixel = img.getpixel((x, SHABBAT_TIME_Y_BASE + offset_y + 2)) # +2 לתיקון אנכי קל
+        if is_pixel_active_green(pixel):
+            active_days.append(day)
+
+    # 3. בדיקת מבנים פעילים
+    active_buildings = []
+    for bld, x in SHABBAT_BUILDINGS_X.items():
+        # נקודת הבדיקה של המבנים היא מעט מעל השעון (Y התחלתי 229 בערך)
+        target_y = 229 + offset_y
+        pixel = img.getpixel((x, target_y))
+        if is_pixel_active_green(pixel):
+            active_buildings.append(bld)
             
-        for py in range(15):
-            for px in range(10):
-                is_dark = digit_img.getpixel((px, py)) < 128
-                if is_dark == ((px, py) in expected_pixels):
-                    score += 1
-        
-        if score > max_score:
-            max_score = score
-            best_digit = digit
-    return best_digit
+    # 4. בדיקת חימום מים (אם מדובר בטאב HEATER)
+    active_heaters = check_heater_buildings(img, offset_y)
+    active_buildings.extend(active_heaters)
 
-def parse_shabbat_clocks(image):
-    """סורק את כל 4 שעוני השבת בדף - הפונקציה המרכזית"""
-    if not image: return []
+    return {
+        "start": start_time,
+        "stop": stop_time,
+        "days": active_days,
+        "buildings": list(set(active_buildings)) # הסרת כפילויות
+    }
     
-    results = []
-    for i in range(4):
-        offset = i * SHABBAT_STEP_Y
-        
-        # 1. פענוח שעת הפעלה
-        on_time_raw = "".join([get_digit_at(image, x, SHABBAT_TIME_Y_BASE + offset) for x in START_TIME_X])
-        on_time = f"{on_time_raw[:2]}:{on_time_raw[2:]}"
-        
-        # 2. פענוח שעת הפסקה
-        off_time_raw = "".join([get_digit_at(image, x, SHABBAT_TIME_Y_BASE + offset) for x in STOP_TIME_X])
-        off_time = f"{off_time_raw[:2]}:{off_time_raw[2:]}"
-
-        # 3. בדיקת מבנים (Y=229 + offset)
-        active_buildings = []
-        y_b = 229 + offset
-        for name, x in SHABBAT_BUILDINGS_X.items():
-            if is_pixel_active_green(image.getpixel((x, y_b))):
-                active_buildings.append(name)
-
-        # 4. בדיקת ימים (Y=278 + offset)
-        active_days = []
-        y_d = 278 + offset
-        for day, x in SHABBAT_DAYS_X.items():
-            if is_pixel_active_green(image.getpixel((x, y_d))):
-                active_days.append(day)
-
-        # 5. סטטוס כפתור הפעלה (נקודה 58, 276)
-        is_active = is_pixel_active_green(image.getpixel((STATUS_POINT_X, SHABBAT_TIME_Y_BASE + offset)))
-
-        results.append({
-            "index": i + 1,
-            "on_time": on_time,
-            "off_time": off_time,
-            "is_active": is_active,
-            "buildings": active_buildings,
-            "days": active_days
-        })
-    return results
+    

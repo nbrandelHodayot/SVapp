@@ -326,6 +326,17 @@ body, html {
     background-color: #f0f0f0;
 }
 
+.btn-on.active-green {
+    background-color: #28a745 !important;
+    box-shadow: 0 0 10px #28a745;
+    color: white;
+}
+.btn-off.active-red {
+    background-color: #dc3545 !important;
+    box-shadow: 0 0 10px #dc3545;
+    color: white;
+}
+
 .shabbat-strip {
     display: flex;
     background: #fff;

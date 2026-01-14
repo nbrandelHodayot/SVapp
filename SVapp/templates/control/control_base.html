@@ -67,6 +67,18 @@
             setInterval(refreshControlStatus, 5000);
         }
     });
+	
+function switchPlcTab(tabKey, contextN, redirectUrl) {
+    // שליחת ה-N של הטאב אליו רוצים לעבור
+    // השרת כבר ידע להשתמש בזה כדי ללחוץ פיזית על הטאב בבקר
+    fetch(`/api/set_plc_page?n=${tabKey}&area=boys&current_tab=${CURRENT_PAGE_CONTEXT.split('_').pop()}`)
+        .then(response => {
+            if (response.ok) {
+                window.location.href = redirectUrl;
+            }
+        });
+}
+
 </script>
 {% endblock %}
 

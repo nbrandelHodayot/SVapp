@@ -1,17 +1,16 @@
 {% extends "base_layout.html" %}
+{% block active_ctx %}{{ active_ctx }}{% endblock %}
 
 {% block page_name %}
     {{ page_title if page_title else "שעוני שבת" }}
 {% endblock %}
 
-{% block back_url %}/control.html{% endblock %}
-{# שימוש ב-BACK_CONFIG שהגדרנו ב-config.py #}
+{% block back_url %}/nav_control.html{% endblock %}
 {% block back_action %}BACK_{{ back_ctx if back_ctx else active_ctx }}{% endblock %}
 
 {% block content %}
 <div class="shabbat-container {{ 'public-club-layout' if is_public_club }}">
     
-    {# תפריט צד אנכי - מופיע רק באזורים ציבוריים/מועדונים #}
     {% if is_public_club %}
     <aside class="vertical-sidebar">
         {% for key, label in vertical_tabs %}
@@ -24,24 +23,30 @@
     {% endif %}
 
     <div class="main-shabbat-ui">
-        {# טאבים אופקיים עליונים - החלפה בין תאורה, מיזוג, חימום וכו' #}
         <nav class="horizontal-tabs">
             {% for key, label in tabs_config %}
             <button class="h-tab-button {{ 'active' if current_tab == key }}" 
-                    onclick="changeHorizontalTab('{{ key }}')">
+                    onclick="switchShabbatTab('TAB_{{ key }}', '/control_{{ area_name }}_shabbat.html?tab={{ key }}')">
                 {{ label }}
             </button>
             {% endfor %}
         </nav>
 
-        {# תצוגת שעוני השבת - לכל מסך בבקר יש 4 זמנים #}
         <div class="clocks-grid">
             {% for i in range(1, 5) %}
             <div class="clock-row">
-                <span class="clock-label">זמן {{ ['א','ב','ג','ד'][i-1] }}</span>
+                <div class="clock-info">
+                    <span class="clock-label">שעון {{ ['א','ב','ג','ד'][loop.index0] }}</span>
+                    <div class="clock-times">
+                        <span id="time_on_{{ loop.index0 }}">--:--</span> | <span id="time_off_{{ loop.index0 }}">--:--</span>
+                    </div>
+                </div>
                 <div class="clock-actions">
-                    {# הפורמט: CONTEXT/ACTION. ה-active_ctx מוודא שהבקר במסך הנכון לפני הלחיצה #}
-                    <button class="btn-toggle" onclick="handleButtonClick('{{ active_ctx }}/TIMER_{{ i }}_TOGGLE')">החלף מצב (ON/OFF)</button>
+                    <button id="toggle_TIMER_{{ i }}" 
+                            class="btn-toggle-shabbat unknown" 
+                            onclick="handleShabbatToggle('{{ active_ctx }}', {{ i }})">
+                        טוען...
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -51,63 +56,94 @@
 
 <script>
 /**
- * שינוי טאב אופקי (למשל ממיזוג לתאורה)
- * @param tabKey - המפתח כפי שמופיע ב-COMMON_COORDS (למשל HEATER, AC)
+ * עדכון ויזואלי של הכפתורים והשעות
  */
-function changeHorizontalTab(tabKey) {
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('tab', tabKey);
-    
-    // שליחת פקודה בפורמט CONTEXT/ACTION
-    // הפקודה בבקר תהיה TAB_HEATER, TAB_AC וכו'
-    handleButtonClick('{{ active_ctx }}/TAB_' + tabKey);
-    
-    // השהייה קלה לעדכון הבקר לפני רענון הדף
-    setTimeout(() => {
-        window.location.search = urlParams.toString();
-    }, 300);
+function updateClockVisuals(data) {
+    if (!data) return;
+
+    // 1. עדכון כפתורי ה-Toggle
+    const statuses = data.clocks_status || {};
+    for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`toggle_TIMER_${i}`);
+        if (!btn) continue;
+
+        const status = statuses[`TIMER_${i}`] || 'OFF';
+        btn.innerText = status;
+        btn.className = 'btn-toggle-shabbat ' + status.toLowerCase();
+    }
+
+    // 2. עדכון שעות ה-OCR
+    if (data.clocks && Array.isArray(data.clocks)) {
+        data.clocks.forEach((clock, index) => {
+            const onElem = document.getElementById(`time_on_${index}`);
+            const offElem = document.getElementById(`time_off_${index}`);
+            if (onElem) onElem.innerText = clock.on_time || "--:--";
+            if (offElem) offElem.innerText = clock.off_time || "--:--";
+        });
+    }
 }
 
 /**
- * שינוי אזור (מעבר בין מבנים במועדון הציבורי)
- * @param vTabKey - מפתח ה-Context החדש (למשל CLUBS_PUBLIC_HOLLAND)
+ * רענון נתונים מהשרת
  */
-function changeVerticalTab(vTabKey) {
-    // כאן אנחנו עוברים להקשר (Context) חדש לגמרי
-    handleButtonClick(vTabKey);
-    
-    setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.pathname = '/clubs_public.html';
-        url.searchParams.set('area', vTabKey);
-        window.location.href = url.toString();
-    }, 300);
+function refreshShabbatStatus() {
+    fetch(`/api/status/shabbat?context={{ active_ctx }}`)
+        .then(res => res.json())
+        .then(data => updateClockVisuals(data))
+        .catch(err => console.error("Refresh error:", err));
 }
+
+/**
+ * הפעלה/כיבוי שעון
+ */
+async function handleShabbatToggle(context, index) {
+    const btn = document.getElementById(`toggle_TIMER_${index}`);
+    const action = btn.classList.contains('on') ? 'OFF' : 'ON';
+    const fullAction = `${context}/TIMER_${index}_${action}`;
+    
+    try {
+        btn.innerText = '...';
+        const response = await fetch('/control?action=' + encodeURIComponent(fullAction));
+        if (response.ok) {
+            setTimeout(refreshShabbatStatus, 1000);
+        }
+    } catch (e) { console.error("Toggle failed", e); }
+}
+
+/**
+ * מעבר טאבים (כמו בדפי הסטטוס)
+ */
+async function switchShabbatTab(tabAction, targetUrl) {
+    const footer = document.getElementById('status-message');
+    const fullAction = "{{ active_ctx }}/" + tabAction;
+    
+    if (footer) footer.innerText = "מעביר דף בבקר...";
+
+    try {
+        await fetch('/control?action=' + encodeURIComponent(fullAction));
+        setTimeout(() => { window.location.href = targetUrl; }, 400); 
+    } catch (e) { window.location.href = targetUrl; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    refreshShabbatStatus();
+    setInterval(refreshShabbatStatus, 5000); 
+});
 </script>
 
 <style>
-    .shabbat-container { display: flex; flex-direction: column; gap: 20px; direction: rtl; }
-    .public-club-layout { flex-direction: row; }
-
-    /* תפריט צד - אנכי */
-    .vertical-sidebar { width: 200px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #444; padding-left: 15px; }
-    .v-tab-button { padding: 15px; background: #2a2a2a; color: #fff; border: 1px solid #333; cursor: pointer; border-radius: 4px; text-align: right; font-size: 14px; transition: 0.2s; }
-    .v-tab-button.active { background: #007bff; border-color: #0056b3; font-weight: bold; }
-    .v-tab-button:hover { background: #3a3a3a; }
-
-    /* טאבים אופקיים */
-    .main-shabbat-ui { flex-grow: 1; display: flex; flex-direction: column; gap: 20px; }
-    .horizontal-tabs { display: flex; gap: 8px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-    .h-tab-button { padding: 12px 20px; background: #222; color: #aaa; border: 1px solid #333; cursor: pointer; border-radius: 5px 5px 0 0; transition: 0.2s; }
-    .h-tab-button.active { background: #333; color: #fff; border-bottom: 4px solid #007bff; font-weight: bold; }
-    .h-tab-button:hover { color: #fff; background: #2a2a2a; }
-
-    /* רשת השעונים */
-    .clocks-grid { background: #000; padding: 25px; border-radius: 10px; border: 1px solid #222; }
-    .clock-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #222; }
-    .clock-row:last-child { border-bottom: none; }
-    .clock-label { font-size: 1.2em; color: #eee; }
-    .btn-toggle { padding: 10px 20px; background: #444; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-    .btn-toggle:hover { background: #007bff; border-color: #0056b3; }
+    .shabbat-container { display: flex; flex-direction: column; gap: 20px; direction: rtl; font-family: sans-serif; }
+    .horizontal-tabs { display: flex; gap: 5px; border-bottom: 2px solid #444; padding-bottom: 0; }
+    .h-tab-button { padding: 12px 25px; background: #1a1a1a; color: #888; border: 1px solid #333; border-bottom: none; cursor: pointer; border-radius: 8px 8px 0 0; }
+    .h-tab-button.active { background: #333; color: #fff; border-top: 3px solid #007bff; font-weight: bold; }
+    .clocks-grid { background: #111; padding: 20px; border-radius: 12px; border: 1px solid #222; }
+    .clock-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #222; }
+    .clock-info { display: flex; flex-direction: column; gap: 5px; }
+    .clock-label { font-size: 1.1rem; color: #ddd; font-weight: 500; }
+    .clock-times { font-size: 0.9rem; color: #888; font-family: monospace; }
+    .btn-toggle-shabbat { width: 100px; padding: 12px; border-radius: 8px; border: 2px solid #444; font-weight: bold; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+    .btn-toggle-shabbat.on { background-color: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 10px rgba(40, 167, 69, 0.3); }
+    .btn-toggle-shabbat.off { background-color: #dc3545; color: white; border-color: #a71d2a; }
+    .btn-toggle-shabbat.unknown { background-color: #444; color: #888; }
 </style>
 {% endblock %}

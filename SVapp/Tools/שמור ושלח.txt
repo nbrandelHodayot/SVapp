@@ -1,4 +1,6 @@
-source venv_linux/bin/activate
+source venv_liux/bin/activate
+
+venv_win\Scripts\activate
 
 git add .
 
@@ -6,4 +8,10 @@ git commit -m "הסבר קצר על השינוי"
 
 git push (בלי תוספות, הוא כבר ידע לאן לשלוח).
 
-venv_win\Scripts\activate
+אופציה 2: "תדרוס את מה שיש לי פה, ה-Git תמיד צודק"
+אם אתה יודע שמה שיש ב-Git הוא הגרסה הכי עדכנית ומה ששינית בטעות במחשב הזה לא חשוב:
+
+Bash
+
+git checkout SVapp/monitor_config.py
+git pull

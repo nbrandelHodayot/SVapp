@@ -1,4 +1,5 @@
 {% extends "control/control_base.html" %}
+{% block active_ctx %}{{ active_ctx }}{% endblock %}
 
 {# קביעת הלשונית הנבחרת והגדרת שמות לתצוגה #}
 {% set current_tab = request.args.get('tab', 'AC1') %}

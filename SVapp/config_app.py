@@ -158,12 +158,20 @@ TAB_COORDS = {
     "TAB_PUBLIC":  {"x": 102, "y": 73},
     "TAB_SHABBAT": {"x": 36, "y": 73},
     
-    # --- קואורדינטות טאבים (בתוך מסכי בקרת בנים ובקרת בנות) ---
-        "TAB_AC1": {"x": 265, "y": 117},
-    "TAB_AC2": {"x": 207, "y": 118},
-    "TAB_ROOMS": {"x": 150, "y": 117},
-    "TAB_WC": {"x": 92, "y": 118},
-    "TAB_HEATER": {"x": 33, "y": 118},
+    # --- קואורדינטות טאבים -שעוני שבת בנים ---
+    "BOYS_SHABBAT_AC1": {"x": 265, "y": 117},
+    "BOYS_SHABBAT_AC2": {"x": 207, "y": 118},
+    "BOYS_SHABBAT_ROOM_LIGHTS": {"x": 150, "y": 117},
+    "BOYS_SHABBAT_BATHROOM_LIGHTS": {"x": 92, "y": 118},
+    "BOYS_SHABBAT_HEATER": {"x": 33, "y": 118},
+
+    # --- קואורדינטות טאבים -שעוני שבת בנות ---
+    "GIRLS_SHABBAT_AC1": {"x": 265, "y": 117},
+    "GIRLS_SHABBAT_AC2": {"x": 207, "y": 118},
+    "GIRLS_SHABBAT_ROOM_LIGHTS": {"x": 150, "y": 117},
+    "GIRLS_SHABBAT_BATHROOM_LIGHTS": {"x": 92, "y": 118},
+    "GIRLS_SHABBAT_HEATER": {"x": 33, "y": 118},
+
 }
 
 

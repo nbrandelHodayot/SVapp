@@ -1,8 +1,10 @@
 {% extends "control/control_base.html" %}
 {% import "macros/shabbat_macros.html" as shabbat_macros %}
 
-{# קביעת ההקשר והלשונית הנבחרת #}
+{# 1. קביעת משתנים בסיסיים קודם כל #}
 {% set current_tab = request.args.get('tab', 'AC1') %}
+
+{# 2. הגדרת המיפויים - חייב להופיע לפני השימוש ב-active_ctx #}
 {% set tab_names = {
     'AC1': 'מיזוג 1/2',
     'AC2': 'מיזוג 2/2',
@@ -18,10 +20,14 @@
     'WC': 'BOYS_SHABBAT_BATHROOM_LIGHTS',
     'HEATER': 'BOYS_SHABBAT_HEATER'
 } %}
+
+{# 3. עכשיו אפשר להגדיר את ה-active_ctx בבטחה #}
 {% set active_ctx = context_map.get(current_tab, 'BOYS_SHABBAT_AC1') %}
 
-{% block title %}שעוני שבת בנים - {{ tab_names[current_tab] }}{% endblock %}
-{% block page_name %}שעוני שבת בנים - {{ tab_names[current_tab] }}{% endblock %}
+{# 4. העברת הנתונים לבלוקים של ה-Base #}
+{% block active_ctx %}{{ active_ctx }}{% endblock %}
+{% block title %}שעוני שבת בנים - {{ tab_names.get(current_tab, 'מיזוג') }}{% endblock %}
+{% block page_name %}שעוני שבת בנים - {{ tab_names.get(current_tab, 'מיזוג') }}{% endblock %}
 
 {% block back_url %}/nav_control.html{% endblock %}
 {% block back_action %}BACK_{{ active_ctx }}{% endblock %}
@@ -32,158 +38,96 @@
     {# תפריט לשוניות עליון #}
     <div class="shabbat-tabs-nav">
         {% for tab_id, tab_label in tab_names.items() %}
-            <a href="?tab={{ tab_id }}" class="shabbat-tab-link {{ 'active' if current_tab == tab_id }}">
-                {{ tab_label }}
-            </a>
+        <button type="button" 
+            onclick="switchPlcTab('{{ tab_id }}', '{{ context_map[tab_id] }}', '?tab={{ tab_id }}')" 
+            class="shabbat-tab-link {{ 'active' if current_tab == tab_id }}">
+            {{ tab_label }}
+        </button>
         {% endfor %}
     </div>
 
     <div class="shabbat-status-header">
-        <p>ניטור ושליטה בזמני שעוני שבת - {{ tab_names[current_tab] }}</p>
+        <p>ניטור ושליטה בזמני שעוני שבת - {{ tab_names.get(current_tab, '') }}</p>
     </div>
 
-    {# גריד שעוני השבת - קריאה למקרו #}
+    {# גריד שעוני השבת #}
     <div class="shabbat-timers-grid">
         {% for i in range(1, 5) %}
+            {# וודא שהמאקרו מקבל את ה-ID הנכון ואת ההקשר #}
             {{ shabbat_macros.render_timer_card(i, active_ctx) }}
         {% endfor %}
     </div>
 </div>
 
 <style>
-    /* עיצוב משלים שספציפי לדף הזה */
     .shabbat-wrapper { direction: rtl; padding: 10px; max-width: 800px; margin: 0 auto; }
-    
-    .shabbat-tabs-nav {
-        display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
-        border-bottom: 2px solid #333; padding-bottom: 12px;
+    .shabbat-tabs-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 12px; }
+    .shabbat-tab-link { 
+        background: #222; color: #aaa; padding: 10px 15px; border-radius: 6px; border: 1px solid #444; 
+        font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: 0.3s;
     }
-
-    .shabbat-tab-link {
-        text-decoration: none; background: #222; color: #aaa; padding: 10px 15px;
-        border-radius: 6px; border: 1px solid #444; font-weight: bold; font-size: 0.85rem;
-    }
-
     .shabbat-tab-link.active { background: #ffcc00; color: #000; border-color: #ffcc00; }
-
     .shabbat-timers-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+    @media (min-width: 768px) { .shabbat-timers-grid { grid-template-columns: 1fr 1fr; } }
     
-    @media (min-width: 768px) {
-        .shabbat-timers-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    /* עיצוב כרטיס שעון (מתוך ה-CSS שביקשת) */
-    .timer-card {
-        background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
-        padding: 15px; display: flex; flex-direction: column; gap: 12px;
-    }
-
-    .timer-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .timer-info-top { display: flex; align-items: center; gap: 10px; }
-    .timer-label { color: #ffcc00; font-size: 1.3rem; font-weight: bold; }
-    
-    .timer-times { text-align: left; }
-    .time-group { font-family: 'Courier New', monospace; font-size: 0.9rem; color: #888; }
-    .time-val { color: #fff; font-weight: bold; font-size: 1.1rem; margin-right: 5px; }
-    .time-val.on { color: #2ecc71; }
-    .time-val.off { color: #e74c3c; }
-
-    .timer-section { border-top: 1px solid #222; padding-top: 10px; }
-    .section-title { font-size: 0.75rem; color: #555; display: block; margin-bottom: 5px; }
-    
-    .chips-container { display: flex; flex-wrap: wrap; gap: 5px; min-height: 25px; }
-    .b-chip { background: #333; color: #ffcc00; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #444; }
-    .d-chip { background: #222; color: #fff; padding: 2px 8px; border-radius: 50%; font-size: 0.75rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: 1px solid #e67e22; }
-
-    .shabbat-toggle-btn {
-        background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 10px;
-        border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s;
-    }
-    .shabbat-toggle-btn:hover { background: #333; border-color: #ffcc00; }
-    
-    .no-data { font-size: 0.7rem; color: #444; font-style: italic; }
-	
-	.status-indicator {
-        width: 15px;
-        height: 15px;
-        border-radius: 50%;
-        display: inline-block;
-    }
+    .status-indicator { width: 15px; height: 15px; border-radius: 50%; display: inline-block; }
     .status-indicator.on { background-color: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
     .status-indicator.off { background-color: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
-    .status-indicator.unknown { background-color: #7f8c8d; }
-
-    /* עיצוב הצ'יפים */
-    .b-chip { 
-        background: #34495e; 
-        color: #ecf0f1; 
-        padding: 2px 8px; 
-        border-radius: 4px; 
-        font-size: 0.8rem;
-        border: 1px solid #2c3e50;
-    }
-    .d-chip { 
-        background: #e67e22; 
-        color: white; 
-        width: 24px; 
-        height: 24px; 
-        display: inline-flex; 
-        align-items: center; 
-        justify-content: center; 
-        border-radius: 50%; 
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
-	
+    .b-chip { background: #34495e; color: #ecf0f1; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin: 2px; display: inline-block; }
+    .d-chip { background: #e67e22; color: white; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; margin: 2px; }
 </style>
 
 <script>
-    /**
-     * עדכון נתוני השעונים מה-API שבנינו ב-Python
-     */
     function refreshControlStatus() {
-        // קריאה ל-API שמפעיל את ה-Pixel Monitoring ב-PLC_CORE
+        // שימוש ב-active_ctx שהוגדר ב-Jinja
         fetch('/api/status/shabbat?context={{ active_ctx }}')
             .then(response => response.json())
             .then(data => {
-                if (!data.success) return;
+                if (!data || !data.success || !data.clocks) return;
 
                 data.clocks.forEach((clock, index) => {
-                    const idx = index + 1; // 1-4
+                    const idx = index + 1;
                     
-                    // 1. עדכון נורית סטטוס
+                    // עדכון נורית
                     const stat = document.getElementById(`stat_${idx}`);
                     if(stat) stat.className = `status-indicator ${clock.is_on ? 'on' : 'off'}`;
-
-                    // 2. עדכון שעות (מה שזיהינו עם הפיקסלים 0-5)
-                    const onElem = document.getElementById(`time_on_${idx}`);
-                    const offElem = document.getElementById(`time_off_${idx}`);
-                    if(onElem) onElem.innerText = clock.on_time;
-                    if(offElem) offElem.innerText = clock.off_time;
-
-                    // 3. עדכון מבנים
-                    const bDiv = document.getElementById(`buildings_${idx}`);
-                    if(bDiv) {
-                        if (clock.buildings.length > 0) {
-                            bDiv.innerHTML = clock.buildings.map(b => `<span class="b-chip">${b}</span>`).join('');
-                        } else {
-                            bDiv.innerHTML = '<span class="no-data">אין מבנים מסומנים</span>';
-                        }
+                    
+                    // עדכון טקסט סטטוס
+                    const statusText = document.getElementById(`status_text_${idx}`);
+                    if(statusText) {
+                        statusText.innerText = clock.is_on ? "מצב: פעיל (ON)" : "מצב: כבוי (OFF)";
+                        statusText.style.color = clock.is_on ? "#28a745" : "#dc3545";
                     }
 
-                    // 4. עדכון ימים
+                    // עדכון שעות
+                    const onElem = document.getElementById(`time_on_${idx}`);
+                    const offElem = document.getElementById(`time_off_${idx}`);
+                    if(onElem) onElem.innerText = clock.on_time || "--:--";
+                    if(offElem) offElem.innerText = clock.off_time || "--:--";
+
+                    // עדכון מבנים
+                    const bDiv = document.getElementById(`buildings_${idx}`);
+                    if(bDiv) {
+                        bDiv.innerHTML = (clock.buildings && clock.buildings.length > 0) 
+                            ? clock.buildings.map(b => `<span class="b-chip">${b}</span>`).join('')
+                            : '<span class="no-data">אין מבנים</span>';
+                    }
+
+                    // עדכון ימים
                     const dDiv = document.getElementById(`days_${idx}`);
                     if(dDiv) {
-                        dDiv.innerHTML = clock.days.map(d => `<span class="d-chip">${d}</span>`).join('');
+                        dDiv.innerHTML = (clock.days && clock.days.length > 0)
+                            ? clock.days.map(d => `<span class="d-chip">${d}</span>`).join('')
+                            : '';
                     }
                 });
             })
             .catch(err => console.error('Error fetching shabbat status:', err));
     }
 
-    // הפעלה ראשונית וריענון כל 5 שניות
     document.addEventListener('DOMContentLoaded', () => {
         refreshControlStatus();
+        // רענון כל 5 שניות
         setInterval(refreshControlStatus, 5000);
     });
 </script>

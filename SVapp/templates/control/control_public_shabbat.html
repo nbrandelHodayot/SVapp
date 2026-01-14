@@ -5,6 +5,7 @@
 
 {% block back_url %}/nav_control.html{% endblock %}
 {% block back_action %}PUBLIC_SHABBAT{% endblock %}
+{% block active_ctx %}{{ active_ctx }}{% endblock %}
 
 {# ניהול פרמטרים: טאב ראשי ומכשיר פעיל (רלוונטי רק לטאב חדר אוכל) #}
 {% set active_tab = request.args.get('tab', 'syn_ac') %}
