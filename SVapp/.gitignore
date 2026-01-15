@@ -4,6 +4,6 @@ venv_linux/
 *.pyc
 __pycache__/
 simulation_images/
-*.*
 .env
 secrets/
+# שים לב: requirements.txt צריך להיות ב-Git!
