@@ -1,0 +1,22 @@
+# Python Dependencies for SVapp
+# התקנה: pip install -r requirements.txt
+
+# Flask Framework
+Flask>=2.3.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.0
+
+# Task Scheduling
+APScheduler>=3.10.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# WebSocket Support (for flask-socketio)
+eventlet>=0.33.0
