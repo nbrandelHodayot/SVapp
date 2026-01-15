@@ -1,5 +1,5 @@
 # Python Dependencies for SVapp
-# התקנה: pip install -r requirements.txt
+# התקנה: pip install -r tools/requirements.txt
 
 # Flask Framework
 Flask>=2.3.0
