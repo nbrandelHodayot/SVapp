@@ -19,6 +19,12 @@
             background-color: rgba(40, 167, 69, 0.1) !important;
             font-weight: bold; 
         }
+        
+        .header-main.simulation-mode {
+            background: #ff6600 !important; /* כתום בהיר */
+            color: #000 !important;
+            font-weight: bold;
+        }
     </style>
     <script>
         var timeout = {{ config.INACTIVITY_TIMEOUT or 300 }};
@@ -29,10 +35,18 @@
 
 <body>
     <div class="page-wrapper">
-        <header class="header-main">
-            <div>הודיות - מערכת כפר חכם</div>
+        <header class="header-main {% if SIMULATION_MODE %}simulation-mode{% endif %}">
+            {% if SIMULATION_MODE %}
+                <div>מצב הדמיה - Simulation mode</div>
+            {% else %}
+                <div>הודיות - מערכת כפר חכם</div>
+            {% endif %}
             <div id="system-time">טוען...</div>
-            <div>מחשבי אנוש</div>
+            {% if SIMULATION_MODE %}
+                <div>מצב סימולציה</div>
+            {% else %}
+                <div>מחשבי אנוש</div>
+            {% endif %}
         </header>
 
         <nav class="header-sub">

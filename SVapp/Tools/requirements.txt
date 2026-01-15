@@ -1,7 +1,0 @@
-Flask
-flask-cors
-flask-socketio
-apscheduler
-requests
-Pillow
-eventlet

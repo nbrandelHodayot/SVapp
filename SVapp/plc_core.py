@@ -3,6 +3,8 @@ from PIL import Image
 from requests.auth import HTTPBasicAuth
 import random
 import datetime
+import glob
+from pathlib import Path
 
 # הוספת נתיב העבודה כדי למנוע שגיאות Import
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -45,8 +47,112 @@ def get_pixel_status(r, g, b):
     if r > 130 and g < 135 and b < 135: return "OFF"
     return "UNKNOWN"
 
-def fetch_plc_image():
-    """משיכת צילום מסך מהבקר עם חתימת זמן למניעת Cache"""
+def context_to_filename(context_key):
+    """ממיר context key לשם קובץ אפשרי בתמונות סימולציה"""
+    if not context_key:
+        return ["default"]
+    
+    # מיפוי context keys לשמות קבצים
+    context_map = {
+        "STATUS_BOYS": ["status_boys", "boys_status"],
+        "STATUS_GIRLS": ["status_girls", "girls_status"],
+        "STATUS_PUBLIC": ["status_public", "public_status"],
+        "STATUS_SHABBAT": ["status_shabbat", "shabbat_status"],
+        "BOYS_SHABBAT_AC1": ["boys_shabbat_ac1", "shabbat_ac1"],
+        "BOYS_SHABBAT_AC2": ["boys_shabbat_ac2", "shabbat_ac2"],
+        "BOYS_SHABBAT_ROOM_LIGHTS": ["boys_shabbat_room", "shabbat_room"],
+        "BOYS_SHABBAT_BATHROOM_LIGHTS": ["boys_shabbat_bathroom", "shabbat_bathroom"],
+        "BOYS_SHABBAT_HEATER": ["boys_shabbat_heater", "shabbat_heater"],
+        "GIRLS_SHABBAT_AC1": ["girls_shabbat_ac1"],
+        "GIRLS_SHABBAT_AC2": ["girls_shabbat_ac2"],
+        "GIRLS_SHABBAT_ROOM_LIGHTS": ["girls_shabbat_room"],
+        "GIRLS_SHABBAT_BATHROOM_LIGHTS": ["girls_shabbat_bathroom"],
+        "GIRLS_SHABBAT_HEATER": ["girls_shabbat_heater"],
+    }
+    
+    # חיפוש ישיר
+    if context_key in context_map:
+        return context_map[context_key]
+    
+    # חיפוש חלקי (למשל "BOYS_SHABBAT" ימצא "BOYS_SHABBAT_AC1")
+    for key, names in context_map.items():
+        if context_key in key or key in context_key:
+            return names
+    
+    # ברירת מחדל
+    return [context_key.lower().replace("_", "-"), "default"]
+
+def find_simulation_images(base_names, sim_dir):
+    """מוצא את כל התמונות התואמות לשמות הבסיס"""
+    found = []
+    extensions = ["*.jfif", "*.jpg", "*.jpeg", "*.bmp", "*.png"]
+    
+    for base in base_names:
+        for ext in extensions:
+            # חיפוש עם מספרים (variant_1, variant_2, etc.)
+            pattern1 = os.path.join(sim_dir, f"{base}_*.{ext[2:]}")
+            pattern2 = os.path.join(sim_dir, f"{base}*.{ext[2:]}")
+            pattern3 = os.path.join(sim_dir, f"{base}.{ext[2:]}")
+            
+            found.extend(glob.glob(pattern1))
+            found.extend(glob.glob(pattern2))
+            found.extend(glob.glob(pattern3))
+    
+    return list(set(found))  # הסרת כפילויות
+
+def load_simulation_image(context_key=None, default_name="default", random_variant=True):
+    """טוען תמונת סימולציה מהתיקייה המקומית"""
+    sim_dir = Path(__file__).parent / "simulation_images"
+    
+    if not sim_dir.exists():
+        logger.warning(f"Simulation directory not found: {sim_dir}")
+        return None
+    
+    # קבלת רשימת שמות אפשריים
+    if context_key:
+        base_names = context_to_filename(context_key)
+    else:
+        base_names = [default_name]
+    
+    # חיפוש תמונות
+    images = find_simulation_images(base_names, str(sim_dir))
+    
+    if not images:
+        # נסיון עם default
+        if context_key:
+            images = find_simulation_images([default_name], str(sim_dir))
+    
+    if not images:
+        logger.warning(f"No simulation images found for context: {context_key}")
+        return None
+    
+    # בחירת תמונה (אקראית או הראשונה)
+    selected = random.choice(images) if random_variant and len(images) > 1 else images[0]
+    
+    try:
+        img = Image.open(selected)
+        logger.debug(f"Loaded simulation image: {selected}")
+        return img
+    except Exception as e:
+        logger.error(f"Failed to load simulation image {selected}: {e}")
+        return None
+
+def fetch_plc_image(context_key=None):
+    """
+    משיכת צילום מסך מהבקר עם חתימת זמן למניעת Cache.
+    ב-SIMULATION_MODE: טוען תמונה מהתיקייה המקומית (תמיכה בכמה תמונות אקראיות).
+    """
+    if getattr(config_app, 'SIMULATION_MODE', False):
+        img = load_simulation_image(context_key, default_name="default", random_variant=True)
+        if img:
+            # המרה ל-bytes כמו שהבקר מחזיר
+            buf = io.BytesIO()
+            img.save(buf, format='BMP')
+            return buf.getvalue()
+        else:
+            logger.warning("SIMULATION_MODE: No local image found, returning None")
+            return None
+    
     timestamp = int(time.time() * 1000)
     url = f"http://{config_app.REMOTE_IP}/CF/CAPTURE/CapVGA.BMP?d={timestamp}"
     try:
@@ -68,8 +174,11 @@ def get_plc_system_time():
         logger.debug(f"Could not fetch PLC time: {e}")
         return None
 
-def get_plc_screenshot():
+def get_plc_screenshot(context_key=None):
     """משיכת תמונת המסך הנוכחית מהבקר לצורך פענוח"""
+    if getattr(config_app, 'SIMULATION_MODE', False):
+        return load_simulation_image(context_key, default_name="default", random_variant=True)
+    
     try:
         url = f"http://{config_app.REMOTE_IP}/remote_control_full.html?pic_format=bmp"
         resp = session.get(url, timeout=5)
@@ -86,14 +195,18 @@ def get_plc_screenshot():
 # 3. ליבת השליטה (קואורדינטות ולחיצות)
 # ==========================================
 
-def send_physical_click(x, y, n, debug_name="Unknown"):
+def send_physical_click(x, y, n, debug_name="Unknown", silent=False):
     """
     שולחת פקודת לחיצה פיזית לבקר.
     x, y: קואורדינטות הלחיצה.
     n: הקונטקסט (הדף) שבו הלחיצה צריכה להתבצע.
+    silent: אם True, לא יוצג בלוגים (מתאים לרצף LOGIN)
     """
     if getattr(config_app, 'SIMULATION_MODE', False):
-        logger.info(f"[SIMULATION] Click at ({x}, {y}) with N={n} [{debug_name}]")
+        if not silent:
+            logger.info(f"[SIMULATION] Click at ({x}, {y}) with N={n} [{debug_name}]")
+        else:
+            logger.debug(f"[SIMULATION] Click at ({x}, {y}) with N={n} [{debug_name}]")
         return {"status": "success"}, 200
 
     # בניית ה-URL עם הפרמטרים הנכונים עבור הבקר
@@ -104,7 +217,10 @@ def send_physical_click(x, y, n, debug_name="Unknown"):
         response = session.get(url, headers={"Referer": config_app.REFERER}, timeout=10)
         
         if response.ok:
-            logger.info(f"Click Sent: {debug_name} ({x}, {y}) [N={n}]")
+            if not silent:
+                logger.info(f"Click Sent: {debug_name} ({x}, {y}) [N={n}]")
+            else:
+                logger.debug(f"Click Sent: {debug_name} ({x}, {y}) [N={n}]")
             return {"status": "success"}, 200
         else:
             logger.error(f"PLC returned error: {response.status_code} for {debug_name}")
@@ -184,12 +300,21 @@ def fetch_shabbat_data(area, context_key):
     
     try:
         # 1. משיכת התמונה העדכנית מהבקר
-        response = session.get(config_app.CGI_URL, timeout=5)
-        if response.status_code == 200 and len(response.content) > 0:
-            img = Image.open(io.BytesIO(response.content)).convert('RGB')
+        if getattr(config_app, 'SIMULATION_MODE', False):
+            img = load_simulation_image(context_key, default_name="default", random_variant=True)
+            if not img:
+                logger.warning(f"SIMULATION_MODE: No image found for context {context_key}")
+                return {"clocks": [], "time": "--:--", "error": "No simulation image"}
         else:
-            logger.error(f"Failed to fetch image from PLC: Status {response.status_code}")
-            return {"clocks": [], "time": "--:--", "error": "Connection error"}
+            response = session.get(config_app.CGI_URL, timeout=5)
+            if response.status_code == 200 and len(response.content) > 0:
+                img = Image.open(io.BytesIO(response.content)).convert('RGB')
+            else:
+                logger.error(f"Failed to fetch image from PLC: Status {response.status_code}")
+                return {"clocks": [], "time": "--:--", "error": "Connection error"}
+
+        if not img:
+            return {"clocks": [], "time": "--:--", "error": "No image available"}
 
         # 2. פענוח נתוני השעונים (זמנים, ימים ומבנים)
         clocks_list = parse_shabbat_clocks(img)
@@ -336,7 +461,7 @@ def get_coords_dynamic(action):
     return None
     
 
-def send_physical_click_by_action(action_name, context_name=None):
+def send_physical_click_by_action(action_name, context_name=None, silent=False):
     """ביצוע לחיצה עם ניהול N חכם - גרסה חסינה"""
     coords = get_coords_dynamic(action_name)
 
@@ -354,9 +479,12 @@ def send_physical_click_by_action(action_name, context_name=None):
     if not n_val:
         n_val = get_screen_n_by_pixel_check() or config_app.CONTEXT_N.get("MAIN")
 
-    logger.info(f"CLICK: {action_name} at ({x}, {y}) | N: {n_val}")
+    if not silent:
+        logger.info(f"CLICK: {action_name} at ({x}, {y}) | N: {n_val}")
+    else:
+        logger.debug(f"CLICK: {action_name} at ({x}, {y}) | N: {n_val}")
     
-    return send_physical_click(x, y, n_val, debug_name=action_name)
+    return send_physical_click(x, y, n_val, debug_name=action_name, silent=silent)
 
 def get_current_page_name():
     """מזהה את שם הדף הנוכחי לפי ה-N הפיזי"""
@@ -370,14 +498,15 @@ def get_current_page_name():
 
 
 def perform_physical_login():
-    """מבצע את כל רצף הלחיצות להתחברות"""
-    logger.info("Starting automated login sequence...")
+    """מבצע את כל רצף הלחיצות להתחברות (בצורה שקטה - ללא הצגה בלוגים)"""
+    logger.debug("Starting automated login sequence (silent mode)...")
     # שימוש בשמות הפעולות כפי שהם מוגדרים ב-get_coords_dynamic
     sequence = ["WAKE_UP", "USER_BUTTON", "DOWN_ARROW", "KEY_6", "KEY_6", "KEY_9", "KEY_1", "KEY_1", "KEY_ENT"]
     
     for action in sequence:
-        send_physical_click_by_action(action)
+        send_physical_click_by_action(action, silent=True)
         time.sleep(1.2) # השהיה קריטית לתגובת הבקר
+    logger.debug("Login sequence completed (silent mode)")
 
 def smart_login_sequence():
     """מפעיל לוגין רק אם יש צורך"""
@@ -452,7 +581,7 @@ def get_shabbat_status_data(context_name):
             time.sleep(0.7) # המתנה לטעינת מסך
 
         # 2. צילום תמונה
-        img_data = fetch_plc_image()
+        img_data = fetch_plc_image(context_key=context_name)
         if not img_data:
             return {"success": False, "error": "PLC image fetch failed"}
 
@@ -478,7 +607,7 @@ def is_pixel_marked(bw_img, x, y):
 
 def parse_digit(bw_img, x_start, y_start):
     """מזהה ספרה אחת לפי השוואה למפות הפיקסלים ב-monitor_config"""
-    for digit, pattern in DIGIT_MAPS.items():
+    for digit, pattern in monitor_config.DIGIT_MAPS.items():
         is_match = True
         for row, black_pixels in pattern:
             for x_offset in range(10): # רוחב ספרה ממוצע
@@ -518,7 +647,7 @@ def parse_days_at(bw_img, x_start, y_row):
 def parse_buildings_at(bw_img, y_row):
     """מזהה אילו מבנים מסומנים בשורה לפי BUILDINGS_MAP"""
     active = []
-    for name, x in monitor_config.BUILDINGS_MAP.items():
+    for name, x in monitor_config.BUILDINGS_MAP_BOYS.items():
         if is_pixel_marked(bw_img, x, y_row + 5):
             active.append(name)
     return active
@@ -667,7 +796,7 @@ def scan_shabbat_clock(img, offset_y):
             # גזירת אזור הספרה מהתמונה
             digit_box = img.crop((x, SHABBAT_TIME_Y_BASE + offset_y, 
                                   x + DIGIT_W, SHABBAT_TIME_Y_BASE + offset_y + DIGIT_H))
-            digit = recognize_digit(digit_box)
+            digit = get_digit_at(img, x, SHABBAT_TIME_Y_BASE + offset_y)
             digits.append(digit if digit else "?")
         
         # בניית פורמט HH:MM (למשל 0800 -> 08:00)

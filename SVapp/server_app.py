@@ -31,6 +31,16 @@ app.secret_key = config.SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 CORS(app)
 
+# =========================================================================
+# Context Processor - העברת משתנים גלובליים לכל ה-templates
+# =========================================================================
+@app.context_processor
+def inject_simulation_mode():
+    """מעביר את מצב הסימולציה לכל ה-templates"""
+    return {
+        'SIMULATION_MODE': getattr(config, 'SIMULATION_MODE', False)
+    }
+
 # הגדרת לוגים מפורטת
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -139,17 +149,16 @@ def get_shabbat_status():
     # שימוש בפונקציה הייעודית החדשה
     data = plc_core.fetch_shabbat_data(area, context)
     
-    if not data["image"]:
-        return jsonify({"error": "Could not fetch image from PLC"}), 500
+    if "error" in data:
+        return jsonify({"error": data["error"]}), 500
 
     try:
-        # שליחה ל-OCR/ניתוח
-        result = parse_shabbat_clocks(data["image"]) 
-        # הזרקת הסטטוסים (ON/OFF) לתוך התוצאה
-        result["clocks_status"] = data["status_points"]
-        result["server_time"] = data["time"]
-        
-        return jsonify(result)
+        # החזרת הנתונים ישירות (הפונקציה כבר מחזירה clocks ו-time)
+        return jsonify({
+            "clocks": data.get("clocks", []),
+            "time": data.get("time", "--:--"),
+            "area": data.get("area", area.upper())
+        })
     except Exception as e:
         logger.error(f"Failed to parse shabbat clocks: {e}")
         return jsonify({"error": str(e)}), 500
@@ -244,7 +253,7 @@ def api_shabbat_status():
             ])
 
         # 1. השגת צילום מסך
-        image = plc_core.get_plc_screenshot()
+        image = plc_core.get_plc_screenshot(context_key=context)
         if not image:
             return jsonify({"error": "Could not capture PLC screen"}), 500
             
@@ -347,23 +356,42 @@ def serve_html_pages(page_name):
 def set_plc_page():
     action_key = request.args.get('n') 
     tab_param = request.args.get('current_tab', 'AC1').upper()
-    area = request.args.get('area', 'boys').upper()
+    area = request.args.get('area', 'boys').lower()
     
-    # אם אנחנו לא בטאב ספציפי (למשל בדף הבית), נשתמש ב-N הכללי של האזור
-    if tab_param == 'INDEX' or not tab_param:
-        current_context_key = f"STATUS_{area}"
+    # בניית שם הטאב המלא (למשל BOYS_SHABBAT_AC1)
+    if area == 'boys':
+        tab_name = f"BOYS_SHABBAT_{action_key.upper()}"
+    elif area == 'girls':
+        tab_name = f"GIRLS_SHABBAT_{action_key.upper()}"
     else:
-        current_context_key = f"{area}_SHABBAT_{tab_param}"
+        tab_name = f"{area.upper()}_SHABBAT_{action_key.upper()}"
     
+    # קבלת הקואורדינטות של הטאב
+    coords = config.TAB_COORDS.get(tab_name)
+    
+    if not coords:
+        logger.error(f"Missing tab coordinates for {tab_name}")
+        return jsonify({"success": False, "error": f"Tab {action_key} not found"}), 400
+    
+    # קבלת ה-N של הדף הנוכחי (למשל BOYS_SHABBAT_AC1)
+    current_context_key = f"{area.upper()}_SHABBAT_{tab_param}"
     current_n = config.CONTEXT_N.get(current_context_key)
-    coords = config.TAB_COORDS.get(f"TAB_{action_key.upper()}")
+    
+    if not current_n:
+        # נסיון עם הקונטקסט הכללי
+        current_n = config.CONTEXT_N.get(f"{area.upper()}_SHABBAT_AC1")
+    
+    if not current_n:
+        logger.error(f"Missing context N for {current_context_key}")
+        return jsonify({"success": False, "error": "Context mapping missing"}), 400
 
-    if not current_n or not coords:
-        logger.error(f"Missing mapping for {current_context_key} or {action_key}")
-        return jsonify({"success": False, "error": "Navigation mapping missing"}), 400
-
-    success = plc_core.send_physical_click(coords['x'], coords['y'], n=current_n)
-    return jsonify({"success": success, "target_tab": action_key})
+    # שליחת הלחיצה
+    result, code = plc_core.send_physical_click(coords['x'], coords['y'], n=current_n, debug_name=f"TAB_{action_key}")
+    
+    if code == 200 and result.get("status") == "success":
+        return jsonify({"success": True, "target_tab": action_key})
+    else:
+        return jsonify({"success": False, "error": result.get("message", "Unknown error")}), code
     
 # =========================================================================
 # 7. מתזמן (Scheduler) - ללא לוגין אוטומטי

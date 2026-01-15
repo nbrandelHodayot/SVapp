@@ -1,5 +1,13 @@
 # config_app.py
 import socket
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+# טעינת משתני סביבה מקובץ .env בתיקיית secrets
+secrets_dir = Path(__file__).parent / "secrets"
+env_file = secrets_dir / ".env"
+load_dotenv(env_file)
 
 COMPUTER_NAME = socket.gethostname().upper() # הופך הכל לאותיות גדולות למניעת טעויות
 # בדיקה גמישה יותר - אם השם מכיל את המחרוזת או שווה לה
@@ -13,20 +21,31 @@ print(f"DEBUG: Simulation Mode is {SIMULATION_MODE}")
 
 # --- הגדרות חיבור לבקר ---
 REMOTE_IP = "192.168.1.234"
-CONTROLLER_USERNAME = "Eli"
-CONTROLLER_PASSWORD = "66911"
+
+# ============================================
+# שכבת אבטחה 1: ממשק הווב של הבקר (HTTP Basic Auth)
+# זה נדרש לכל קריאת HTTP לבקר (צילומי מסך, שליחת פקודות)
+# ============================================
+CONTROLLER_USERNAME = os.getenv("CONTROLLER_WEB_USERNAME", "Eli")
+CONTROLLER_PASSWORD = os.getenv("CONTROLLER_WEB_PASSWORD", "66911")
+
+# ============================================
+# שכבת אבטחה 2: סיסמת מערכת הבקר עצמו
+# זה נדרש לכניסה למערכת הבקר (לוגין פיזי בממשק הבקר)
+# ============================================
+ACTUAL_SYSTEM_PASSWORD = os.getenv("CONTROLLER_SYSTEM_PASSWORD", "66911")
 
 CGI_URL = f"http://{REMOTE_IP}/cgi-bin/remote_mouse.cgi"
 REFERER = f"http://{REMOTE_IP}/remote_control_full.html?pic_format=bmp"
 
 # --- אבטחת האפליקציה (Flask) ---
-SECRET_KEY = "super-secret-key-change-me"
+SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-me")
 INACTIVITY_TIMEOUT = 270  # שניות עד לניתוק אוטומטי
 
 # מילון משתמשים לכניסה לממשק הווב
 USERS = {
-    "admin": "6546",
-    "eli": "66911"
+    "admin": os.getenv("APP_USER_ADMIN", "6546"),
+    "eli": os.getenv("APP_USER_ELI", "66911")
 }
  
 # =================================================================

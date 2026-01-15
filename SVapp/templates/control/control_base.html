@@ -69,13 +69,29 @@
     });
 	
 function switchPlcTab(tabKey, contextN, redirectUrl) {
-    // שליחת ה-N של הטאב אליו רוצים לעבור
-    // השרת כבר ידע להשתמש בזה כדי ללחוץ פיזית על הטאב בבקר
-    fetch(`/api/set_plc_page?n=${tabKey}&area=boys&current_tab=${CURRENT_PAGE_CONTEXT.split('_').pop()}`)
-        .then(response => {
-            if (response.ok) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentTab = urlParams.get('tab') || 'AC1';
+    
+    let area = 'boys';
+    if (window.location.pathname.includes('girls')) {
+        area = 'girls';
+    } else if (window.location.pathname.includes('public')) {
+        area = 'public';
+    }
+    
+    fetch(`/api/set_plc_page?n=${encodeURIComponent(tabKey)}&area=${area}&current_tab=${encodeURIComponent(currentTab)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
                 window.location.href = redirectUrl;
+            } else {
+                console.error('Failed to switch tab:', data.error);
+                alert('שגיאה בניתוב טאב: ' + (data.error || 'שגיאה לא ידועה'));
             }
+        })
+        .catch(error => {
+            console.error('Error switching tab:', error);
+            alert('שגיאת תקשורת בעת החלפת טאב');
         });
 }
 
