@@ -1,8 +1,12 @@
 # config_app.py
 import socket
 import os
+import logging
 from dotenv import load_dotenv
 from pathlib import Path
+
+# הגדרת logger
+logger = logging.getLogger(__name__)
 
 # טעינת משתני סביבה מקובץ .env בתיקיית secrets
 secrets_dir = Path(__file__).parent / "secrets"
@@ -16,8 +20,8 @@ SIMULATION_MODE = ("HOD2301-07" in COMPUTER_NAME)
 # שנה ל-True כשאתה בבית, ול-False כשאתה בעבודה
 MOCK_MODE = False
 
-print(f"DEBUG: Computer Name is {COMPUTER_NAME}")
-print(f"DEBUG: Simulation Mode is {SIMULATION_MODE}")
+logger.info(f"Computer Name: {COMPUTER_NAME}")
+logger.info(f"Simulation Mode: {SIMULATION_MODE}")
 
 # --- הגדרות חיבור לבקר ---
 REMOTE_IP = "192.168.1.234"
@@ -26,26 +30,51 @@ REMOTE_IP = "192.168.1.234"
 # שכבת אבטחה 1: ממשק הווב של הבקר (HTTP Basic Auth)
 # זה נדרש לכל קריאת HTTP לבקר (צילומי מסך, שליחת פקודות)
 # ============================================
-CONTROLLER_USERNAME = os.getenv("CONTROLLER_WEB_USERNAME", "Eli")
-CONTROLLER_PASSWORD = os.getenv("CONTROLLER_WEB_PASSWORD", "66911")
+CONTROLLER_USERNAME = os.getenv("CONTROLLER_WEB_USERNAME")
+CONTROLLER_PASSWORD = os.getenv("CONTROLLER_WEB_PASSWORD")
+
+if not CONTROLLER_USERNAME or not CONTROLLER_PASSWORD:
+    raise ValueError(
+        "CONTROLLER_WEB_USERNAME and CONTROLLER_WEB_PASSWORD must be set in secrets/.env file"
+    )
 
 # ============================================
 # שכבת אבטחה 2: סיסמת מערכת הבקר עצמו
 # זה נדרש לכניסה למערכת הבקר (לוגין פיזי בממשק הבקר)
 # ============================================
-ACTUAL_SYSTEM_PASSWORD = os.getenv("CONTROLLER_SYSTEM_PASSWORD", "66911")
+ACTUAL_SYSTEM_PASSWORD = os.getenv("CONTROLLER_SYSTEM_PASSWORD")
+
+if not ACTUAL_SYSTEM_PASSWORD:
+    raise ValueError(
+        "CONTROLLER_SYSTEM_PASSWORD must be set in secrets/.env file"
+    )
 
 CGI_URL = f"http://{REMOTE_IP}/cgi-bin/remote_mouse.cgi"
 REFERER = f"http://{REMOTE_IP}/remote_control_full.html?pic_format=bmp"
 
 # --- אבטחת האפליקציה (Flask) ---
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-me")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY must be set in secrets/.env file. "
+        "Generate a strong secret key using: python -c 'import secrets; print(secrets.token_hex(32))'"
+    )
+
 INACTIVITY_TIMEOUT = 270  # שניות עד לניתוק אוטומטי
 
 # מילון משתמשים לכניסה לממשק הווב
+admin_password = os.getenv("APP_USER_ADMIN")
+eli_password = os.getenv("APP_USER_ELI")
+
+if not admin_password or not eli_password:
+    raise ValueError(
+        "APP_USER_ADMIN and APP_USER_ELI must be set in secrets/.env file"
+    )
+
 USERS = {
-    "admin": os.getenv("APP_USER_ADMIN", "6546"),
-    "eli": os.getenv("APP_USER_ELI", "66911")
+    "admin": admin_password,
+    "eli": eli_password
 }
  
 # =================================================================

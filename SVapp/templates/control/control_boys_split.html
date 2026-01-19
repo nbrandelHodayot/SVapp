@@ -15,10 +15,10 @@
         {% for dev in devices %}
         <div class="device-row">
             <span class="device-name">{{ dev.label }}</span>
-            <div class="status-indicator unknown" id="stat_{{ dev.id }}"></div>
+            <div class="status-indicator unknown" id="stat_{{ dev.monitor_id }}"></div>
             <div class="button-pair">
-                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.id }}_OFF', 'C_B_S')">OFF</button>
-                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.id }}_ON', 'C_B_S')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.action_off }}', 'C_B_S')">OFF</button>
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.action_on }}', 'C_B_S')">ON</button>
             </div>
         </div>
         {% endfor %}
@@ -30,34 +30,54 @@
 <div class="boys-split-wrapper">
     <div class="buildings-grid">
         {# מבנים סטנדרטיים 1-5 #}
-        {{ building_card("בית 1", [{"label": "מיזוג", "id": "B1_AC"}, {"label": "חדרים", "id": "B1_R"}, {"label": "שירותים", "id": "B1_T"}]) }}
-        {{ building_card("בית 2", [{"label": "מיזוג", "id": "B2_AC"}, {"label": "חדרים", "id": "B2_R"}, {"label": "שירותים", "id": "B2_T"}]) }}
-        {{ building_card("בית 3", [{"label": "מיזוג", "id": "B3_AC"}, {"label": "חדרים", "id": "B3_R"}, {"label": "שירותים", "id": "B3_T"}]) }}
-        {{ building_card("בית 4", [{"label": "מיזוג", "id": "B4_AC"}, {"label": "חדרים", "id": "B4_R"}, {"label": "שירותים", "id": "B4_T"}]) }}
-        {{ building_card("בית 5", [{"label": "מיזוג", "id": "B5_AC"}, {"label": "חדרים", "id": "B5_R"}, {"label": "שירותים", "id": "B5_T"}]) }}
+        {{ building_card("בית 1", [
+            {"label": "מיזוג", "monitor_id": "AC_B1", "action_on": "AC_B1_ON", "action_off": "AC_B1_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B1", "action_on": "R_B1_ON", "action_off": "R_B1_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B1", "action_on": "T_B1_ON", "action_off": "T_B1_OFF"}
+        ]) }}
+        {{ building_card("בית 2", [
+            {"label": "מיזוג", "monitor_id": "AC_B2", "action_on": "AC_B2_ON", "action_off": "AC_B2_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B2", "action_on": "R_B2_ON", "action_off": "R_B2_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B2", "action_on": "T_B2_ON", "action_off": "T_B2_OFF"}
+        ]) }}
+        {{ building_card("בית 3", [
+            {"label": "מיזוג", "monitor_id": "AC_B3", "action_on": "AC_B3_ON", "action_off": "AC_B3_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B3", "action_on": "R_B3_ON", "action_off": "R_B3_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B3", "action_on": "T_B3_ON", "action_off": "T_B3_OFF"}
+        ]) }}
+        {{ building_card("בית 4", [
+            {"label": "מיזוג", "monitor_id": "AC_B4", "action_on": "AC_B4_ON", "action_off": "AC_B4_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B4", "action_on": "R_B4_ON", "action_off": "R_B4_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B4", "action_on": "T_B4_ON", "action_off": "T_B4_OFF"}
+        ]) }}
+        {{ building_card("בית 5", [
+            {"label": "מיזוג", "monitor_id": "AC_B5", "action_on": "AC_B5_ON", "action_off": "AC_B5_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B5", "action_on": "R_B5_ON", "action_off": "R_B5_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B5", "action_on": "T_B5_ON", "action_off": "T_B5_OFF"}
+        ]) }}
 
         {# בית 9 - עם פיצול מיזוג #}
         {{ building_card("בית 9", [
-            {"label": "מיזוג א'", "id": "B9_AC_A"},
-            {"label": "מיזוג ב'", "id": "B9_AC_B"},
-            {"label": "חדרים", "id": "B9_R"},
-            {"label": "שירותים", "id": "B9_T"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B9A", "action_on": "AC_B9A_ON", "action_off": "AC_B9A_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B9B", "action_on": "AC_B9B_ON", "action_off": "AC_B9B_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B9", "action_on": "R_B9_ON", "action_off": "R_B9_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B9", "action_on": "T_B9_ON", "action_off": "T_B9_OFF"}
         ]) }}
 
         {# בית 11 קומה א' #}
         {{ building_card("בית 11 - קומה א'", [
-            {"label": "מיזוג א'", "id": "B11A_AC_A"},
-            {"label": "מיזוג ב'", "id": "B11A_AC_B"},
-            {"label": "חדרים", "id": "B11A_R"},
-            {"label": "שירותים", "id": "B11A_T"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B11AA", "action_on": "AC_B11AA_ON", "action_off": "AC_B11AA_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B11AB", "action_on": "AC_B11AB_ON", "action_off": "AC_B11AB_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B11A", "action_on": "R_B11A_ON", "action_off": "R_B11A_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B11A", "action_on": "T_B11A_ON", "action_off": "T_B11A_OFF"}
         ]) }}
 
         {# בית 11 קומה ב' #}
         {{ building_card("בית 11 - קומה ב'", [
-            {"label": "מיזוג א'", "id": "B11B_AC_A"},
-            {"label": "מיזוג ב'", "id": "B11B_AC_B"},
-            {"label": "חדרים", "id": "B11B_R"},
-            {"label": "שירותים", "id": "B11B_T"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B11BA", "action_on": "AC_B11BA_ON", "action_off": "AC_B11BA_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B11BB", "action_on": "AC_B11BB_ON", "action_off": "AC_B11BB_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B11B", "action_on": "R_B11B_ON", "action_off": "R_B11B_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B11B", "action_on": "T_B11B_ON", "action_off": "T_B11B_OFF"}
         ]) }}
     </div>
 
@@ -68,85 +88,168 @@
 </div>
 
 <style>
-    .boys-split-wrapper { direction: rtl; padding: 10px; }
+    .boys-split-wrapper { 
+        direction: rtl; 
+        padding: 15px; 
+        background: #1a1a1a;
+        min-height: 100vh;
+    }
     
     .buildings-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 25px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
         justify-items: center;
     }
 
     .building-card {
-        background: #0f0f0f;
-        border: 1px solid #333;
-        border-radius: 12px;
-        padding: 25px 15px 15px;
+        background: #2d2d2d;
+        border: 2px solid #444;
+        border-radius: 8px;
+        padding: 20px 15px 15px;
         position: relative;
         width: 100%;
         max-width: 380px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .building-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.9);
     }
 
     .card-title-label {
         position: absolute;
-        top: -14px;
+        top: -16px;
         right: 20px;
-        background: #ffcc00;
-        color: #000;
-        padding: 2px 15px;
-        border-radius: 6px;
+        background: #3d5a80;
+        color: #fff;
+        padding: 6px 18px;
+        border-radius: 4px;
         font-weight: bold;
-        font-size: 0.9rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        font-size: 1rem;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+        border: 1px solid #5a7ba0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .card-rows-container { display: flex; flex-direction: column; gap: 10px; }
+    .card-rows-container { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 12px; 
+        margin-top: 5px;
+    }
 
     .device-row {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
         align-items: center;
-        background: #1a1a1a;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #222;
+        gap: 12px;
+        background: #1e1e1e;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #333;
+        transition: background 0.2s;
     }
 
-    .device-name { flex: 1; text-align: right; color: #ddd; font-weight: 500; font-size: 0.95rem; }
+    .device-row:hover {
+        background: #252525;
+    }
+
+    .device-name { 
+        text-align: right; 
+        color: #e0e0e0; 
+        font-weight: 500; 
+        font-size: 0.95rem;
+    }
 
     .status-indicator {
-        margin: 0 15px;
-        /* Size, colors, and other styles from unified CSS (style.css) */
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        /* Styles inherited from unified CSS */
     }
 
-    .button-pair { display: flex; gap: 8px; }
+    .button-pair { 
+        display: flex; 
+        gap: 8px; 
+    }
     
     .btn-hmi {
-        padding: 6px 14px;
-        border: none;
-        border-radius: 5px;
+        padding: 8px 16px;
+        border: 1px solid #555;
+        border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 0.8rem;
-        transition: opacity 0.2s;
-        min-width: 55px;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        min-width: 60px;
+        text-transform: uppercase;
     }
-    .btn-hmi:active { transform: scale(0.95); opacity: 0.8; }
-    .btn-on { background: #28a745; color: white; }
-    .btn-off { background: #dc3545; color: white; }
+    
+    .btn-hmi:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    
+    .btn-hmi:active { 
+        transform: scale(0.95); 
+    }
+    
+    .btn-on { 
+        background: #004d00; 
+        color: #90ee90;
+        border-color: #006600;
+    }
+    
+    .btn-on:hover {
+        background: #006600;
+        box-shadow: 0 0 12px rgba(0, 200, 0, 0.4);
+    }
+    
+    .btn-off { 
+        background: #4d0000; 
+        color: #ff6b6b;
+        border-color: #660000;
+    }
+    
+    .btn-off:hover {
+        background: #660000;
+        box-shadow: 0 0 12px rgba(200, 0, 0, 0.4);
+    }
 
     .split-legend {
         margin-top: 30px;
         text-align: center;
-        color: #666;
+        color: #888;
         font-style: italic;
         font-size: 0.85rem;
+        padding: 10px;
+        background: #252525;
+        border-radius: 6px;
+        border: 1px solid #333;
     }
 
     /* התאמה למסכים קטנים */
     @media (max-width: 600px) {
-        .buildings-grid { grid-template-columns: 1fr; }
-        .building-card { max-width: 100%; }
+        .buildings-grid { 
+            grid-template-columns: 1fr; 
+        }
+        .building-card { 
+            max-width: 100%; 
+        }
+        .device-row {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .status-indicator {
+            justify-self: start;
+        }
+        .button-pair {
+            justify-self: stretch;
+        }
     }
 </style>
 
@@ -156,8 +259,53 @@
      * משתמשת בפונקציית העזר של control_base
      */
     function refreshControlStatus() {
-        // קריאה ל-API שמחזיר את מצב כל המבנים באזור הבנים
-        updateControlIndicators('/api/status/boys_control', 'stat_');
+        // קריאה ל-API שמחזיר את מצב כל המבנים באזור הבנים (control split)
+        fetch('/api/status/boys/control_split')
+            .then(res => {
+                if (!res.ok) {
+                    console.error(`API Error: ${res.status} ${res.statusText}`);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                
+                // אם יש שגיאה, נדווח
+                if (data.error) {
+                    console.error("API Error:", data.error);
+                    return;
+                }
+                
+                // עדכון כל הנורות לפי הנתונים
+                for (const [key, val] of Object.entries(data)) {
+                    const el = document.getElementById('stat_' + key);
+                    if (el) {
+                        // הסרת כל הקלאסים הקודמים
+                        el.classList.remove('on', 'off', 'unknown');
+                        // הוספת הקלאס החדש לפי המצב (ON/OFF/UNKNOWN)
+                        const state = String(val).toLowerCase();
+                        el.classList.add(state);
+                    } else {
+                        // דיבאג: אם נורה לא נמצאה
+                        console.warn(`LED indicator not found for: stat_${key}`);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Status Update Failed:", err);
+                // במקרה של שגיאה, נסמן את כל הנורות כ-unknown
+                document.querySelectorAll('.status-indicator').forEach(el => {
+                    el.classList.remove('on', 'off');
+                    el.classList.add('unknown');
+                });
+            });
     }
+    
+    // קריאה ראשונית ורענון אוטומטי
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshControlStatus();
+        setInterval(refreshControlStatus, 5000);
+    });
 </script>
 {% endblock %}

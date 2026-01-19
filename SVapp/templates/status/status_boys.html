@@ -33,7 +33,7 @@
     <div class="club-cell name">מועדון בית {{ num }}</div>
     <div class="club-cell sensor">
         <span>מצב חיישן:</span>
-        <span id="stat_SB_C{{num}}_S" class="sensor-val">טוען...</span>
+        {{ led("SB_C" ~ num ~ "_S") }}
     </div>
     <div class="club-cell inline-led">
         <span>תאורה</span>
@@ -119,7 +119,7 @@
     }
     .club-cell { font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
     .club-cell.name { font-weight: bold; color: #00d2ff; }
-    .sensor-val { color: #0f0; font-weight: bold; font-size: 0.8rem; }
+    .club-cell.sensor { display: flex; align-items: center; gap: 8px; }
     .inline-led { display: flex; align-items: center; gap: 8px; }
 
     .led-indicator { flex-shrink: 0; }
@@ -139,13 +139,8 @@ function refreshPageData() {
             for (const [key, val] of Object.entries(data)) {
                 const el = document.getElementById('stat_' + key);
                 if (el) {
-                    // עדכון קלאסים לפי ה-CSS שלך (on/off/unknown)
+                    // עדכון קלאסים לפי ה-CSS (on/off/unknown)
                     el.className = 'led-indicator ' + val.toLowerCase();
-                    
-                    // אם זה טקסט (חיישן)
-                    if (el.classList.contains('sensor-val')) {
-                        el.innerText = (val === 'ON') ? 'פעיל' : 'מנוטרל';
-                    }
                 }
             }
         });

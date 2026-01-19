@@ -153,15 +153,16 @@ def get_shabbat_status():
         return jsonify({"error": data["error"]}), 500
 
     try:
-        # החזרת הנתונים ישירות (הפונקציה כבר מחזירה clocks ו-time)
+        # החזרת הנתונים ישירות (הפונקציה כבר מחזירה clocks עם is_on, times, buildings, days)
         return jsonify({
             "clocks": data.get("clocks", []),
             "time": data.get("time", "--:--"),
-            "area": data.get("area", area.upper())
+            "area": data.get("area", area.upper()),
+            "success": True  # הוספה לתאימות עם JavaScript
         })
     except Exception as e:
         logger.error(f"Failed to parse shabbat clocks: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "success": False}), 500
         
         
         
@@ -271,7 +272,47 @@ def get_area_status(area):
     data = fetch_plc_status(area)
     return jsonify(data)
 
+@app.route('/api/status/boys/control_split')
+@login_required
+def get_boys_control_split_status():
+    """מחזיר סטטוס נורות ביקורת לדף בקרת בנים - חלוקה למבנים"""
+    import monitor_config
+    from plc_core import get_multi_status
+    
+    # שימוש ב-MONITOR_POINTS_CONTROL_SPLIT עם המפתח "boys"
+    points_dict = monitor_config.MONITOR_POINTS_CONTROL_SPLIT.get("boys", {})
+    n_val = config.CONTEXT_N.get("BOYS_SPLIT")
+    
+    if not n_val or not points_dict:
+        return jsonify({"error": "Configuration missing"}), 500
+    
+    try:
+        results = get_multi_status(points_dict, n_val)
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error fetching boys control split status: {e}")
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/api/status/boys/general')
+@login_required
+def get_boys_control_general_status():
+    """מחזיר סטטוס נורות ביקורת לדף בקרת בנים - הפעלה כללית"""
+    import monitor_config
+    from plc_core import get_multi_status
+    
+    # שימוש ב-MONITOR_POINTS_CONTROL_GEN עם המפתח "boys"
+    points_dict = monitor_config.MONITOR_POINTS_CONTROL_GEN.get("boys", {})
+    n_val = config.CONTEXT_N.get("BOYS_GENERAL")
+    
+    if not n_val or not points_dict:
+        return jsonify({"error": "Configuration missing"}), 500
+    
+    try:
+        results = get_multi_status(points_dict, n_val)
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error fetching boys control general status: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/status/public/control_d1')
 @login_required
@@ -413,4 +454,6 @@ scheduler.start()
 # =========================================================================
 if __name__ == '__main__':
     # שימוש ב-socketio.run חיוני לעבודה תקינה של WebSockets
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    # debug mode מופעל רק בסביבת פיתוח (SIMULATION_MODE)
+    debug_mode = getattr(config, 'SIMULATION_MODE', False)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=debug_mode, use_reloader=False)

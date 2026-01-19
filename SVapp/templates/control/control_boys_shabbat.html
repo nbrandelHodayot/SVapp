@@ -60,50 +60,325 @@
 </div>
 
 <style>
-    .shabbat-wrapper { direction: rtl; padding: 10px; max-width: 800px; margin: 0 auto; }
-    .shabbat-tabs-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 12px; }
-    .shabbat-tab-link { 
-        background: #222; color: #aaa; padding: 10px 15px; border-radius: 6px; border: 1px solid #444; 
-        font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: 0.3s;
+    .shabbat-wrapper { 
+        direction: rtl; 
+        padding: 15px; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        background: #1a1a1a;
+        min-height: 100vh;
+        color: #fff; /* כל הטקסט בדף יהיה לבן */
     }
-    .shabbat-tab-link.active { background: #ffcc00; color: #000; border-color: #ffcc00; }
-    .shabbat-timers-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-    @media (min-width: 768px) { .shabbat-timers-grid { grid-template-columns: 1fr 1fr; } }
     
-    .status-indicator { width: 15px; height: 15px; border-radius: 50%; display: inline-block; }
-    .status-indicator.on { background-color: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
-    .status-indicator.off { background-color: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
-    .b-chip { background: #34495e; color: #ecf0f1; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin: 2px; display: inline-block; }
-    .d-chip { background: #e67e22; color: white; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; margin: 2px; }
+    .shabbat-wrapper * {
+        color: inherit; /* יורש צבע מההורה */
+    }
+    
+    .shabbat-wrapper p,
+    .shabbat-wrapper span,
+    .shabbat-wrapper div {
+        color: #fff; /* כל הטקסט לבן */
+    }
+    
+    .shabbat-tabs-nav { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 10px; 
+        margin-bottom: 25px; 
+        border-bottom: 2px solid #444; 
+        padding-bottom: 15px; 
+        background: #252525;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
+    }
+    
+    .shabbat-tab-link { 
+        background: #2d2d2d; 
+        color: #bbb; 
+        padding: 12px 20px; 
+        border-radius: 6px; 
+        border: 1px solid #444; 
+        font-weight: bold; 
+        font-size: 0.9rem; 
+        cursor: pointer; 
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .shabbat-tab-link:hover {
+        background: #3d3d3d;
+        border-color: #555;
+        transform: translateY(-2px);
+    }
+    
+    .shabbat-tab-link.active { 
+        background: #3d5a80; 
+        color: #fff; 
+        border-color: #5a7ba0;
+        box-shadow: 0 4px 12px rgba(61, 90, 128, 0.5);
+    }
+    
+    .shabbat-status-header {
+        text-align: center;
+        color: #fff;
+        margin-bottom: 25px;
+        padding: 15px;
+        background: #252525;
+        border-radius: 8px;
+        border: 1px solid #333;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    
+    .shabbat-timers-grid { 
+        display: grid; 
+        grid-template-columns: 1fr; 
+        gap: 20px; 
+    }
+    
+    @media (min-width: 768px) { 
+        .shabbat-timers-grid { 
+            grid-template-columns: 1fr 1fr; 
+        } 
+    }
+    
+    /* כרטיס שעון */
+    .timer-card {
+        background: #2d2d2d;
+        border: 2px solid #444;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .timer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.9);
+    }
+    
+    .timer-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #444;
+    }
+    
+    .timer-info-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .timer-label {
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    
+    .timer-control-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    /* נורות סטטוס - עיצוב תעשייתי */
+    .status-indicator { 
+        width: 18px; 
+        height: 18px; 
+        border-radius: 50%; 
+        display: inline-block;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+    
+    .status-indicator.on { 
+        background-color: #00ff00; 
+        box-shadow: 0 0 10px #00ff00; 
+    }
+    
+    .status-indicator.off { 
+        background-color: #ff0000; 
+        box-shadow: 0 0 10px #700000; 
+    }
+    
+    .status-indicator.unknown {
+        background-color: #808080;
+        box-shadow: 0 0 8px #555;
+        animation: pulse-gray 2s infinite ease-in-out;
+    }
+    
+    /* כפתור ON/OFF - עיצוב תעשייתי */
+    .shabbat-toggle-btn {
+        padding: 8px 20px;
+        border: 1px solid #555;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        min-width: 70px;
+        font-family: inherit;
+    }
+    
+    .shabbat-toggle-btn.on {
+        background: #004d00;
+        color: #90ee90;
+        border-color: #006600;
+    }
+    
+    .shabbat-toggle-btn.on:hover {
+        background: #006600;
+        box-shadow: 0 0 12px rgba(0, 200, 0, 0.4);
+        transform: scale(1.05);
+    }
+    
+    .shabbat-toggle-btn.off {
+        background: #4d0000;
+        color: #ff6b6b;
+        border-color: #660000;
+    }
+    
+    .shabbat-toggle-btn.off:hover {
+        background: #660000;
+        box-shadow: 0 0 12px rgba(200, 0, 0, 0.4);
+        transform: scale(1.05);
+    }
+    
+    .shabbat-toggle-btn.unknown {
+        background: #3d3d3d;
+        color: #bbb;
+        border-color: #555;
+    }
+    
+    .timer-times-display {
+        text-align: center;
+        padding: 8px;
+        background: #1e1e1e;
+        border-radius: 4px;
+        border: 1px solid #333;
+    }
+    
+    .time-display-text {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+    }
+    
+    @keyframes pulse-gray {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    /* סקציות כרטיס */
+    .timer-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .section-title {
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-height: 30px;
+    }
+    
+    .no-data {
+        color: #888;
+        font-style: italic;
+        font-size: 0.85rem;
+    }
+    
+    /* שבבי מבנים וימים - עיצוב תעשייתי */
+    .b-chip { 
+        background: #3d5a80; 
+        color: #fff; 
+        padding: 4px 10px; 
+        border-radius: 4px; 
+        font-size: 0.8rem; 
+        margin: 3px; 
+        display: inline-block;
+        border: 1px solid #5a7ba0;
+        font-weight: 500;
+    }
+    
+    .d-chip { 
+        background: #4a6741; 
+        color: #fff; 
+        width: 28px; 
+        height: 28px; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        border-radius: 50%; 
+        font-size: 0.85rem; 
+        margin: 3px;
+        font-weight: bold;
+        border: 1px solid #5a7b4a;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
 </style>
 
 <script>
     function refreshControlStatus() {
         // שימוש ב-active_ctx שהוגדר ב-Jinja
         fetch('/api/status/shabbat?context={{ active_ctx }}')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    console.error(`API Error: ${response.status} ${response.statusText}`);
+                    return null;
+                }
+                return response.json();
+            })
             .then(data => {
-                if (!data || !data.success || !data.clocks) return;
+                // ה-API מחזיר ישירות {clocks: [...], time: "...", area: "..."}
+                if (!data || !data.clocks || !Array.isArray(data.clocks)) {
+                    console.warn("No clocks data received or invalid format:", data);
+                    return;
+                }
 
                 data.clocks.forEach((clock, index) => {
                     const idx = index + 1;
                     
                     // עדכון נורית
                     const stat = document.getElementById(`stat_${idx}`);
-                    if(stat) stat.className = `status-indicator ${clock.is_on ? 'on' : 'off'}`;
+                    if(stat) {
+                        const state = clock.is_on ? 'on' : 'off';
+                        stat.className = `status-indicator ${state}`;
+                    }
                     
-                    // עדכון טקסט סטטוס
-                    const statusText = document.getElementById(`status_text_${idx}`);
-                    if(statusText) {
-                        statusText.innerText = clock.is_on ? "מצב: פעיל (ON)" : "מצב: כבוי (OFF)";
-                        statusText.style.color = clock.is_on ? "#28a745" : "#dc3545";
+                    // עדכון כפתור ON/OFF - לצד הנורה
+                    const toggleBtn = document.getElementById(`toggle_btn_${idx}`);
+                    if(toggleBtn) {
+                        const state = clock.is_on ? 'on' : 'off';
+                        toggleBtn.className = `shabbat-toggle-btn ${state}`;
+                        toggleBtn.innerText = clock.is_on ? 'ON' : 'OFF';
                     }
 
-                    // עדכון שעות
-                    const onElem = document.getElementById(`time_on_${idx}`);
-                    const offElem = document.getElementById(`time_off_${idx}`);
-                    if(onElem) onElem.innerText = clock.on_time || "--:--";
-                    if(offElem) offElem.innerText = clock.off_time || "--:--";
+                    // עדכון תצוגת שעות - פורמט: ON HH:MM / OFF HH:MM
+                    const timeDisplay = document.getElementById(`time_display_${idx}`);
+                    if(timeDisplay) {
+                        const onTime = clock.on_time || "--:--";
+                        const offTime = clock.off_time || "--:--";
+                        timeDisplay.innerText = `${onTime} / ${offTime}`;
+                    }
 
                     // עדכון מבנים
                     const bDiv = document.getElementById(`buildings_${idx}`);
@@ -122,7 +397,23 @@
                     }
                 });
             })
-            .catch(err => console.error('Error fetching shabbat status:', err));
+            .catch(err => {
+                console.error('Error fetching shabbat status:', err);
+                // במקרה של שגיאה, נסמן את כל הנורות כ-unknown
+                for (let i = 1; i <= 4; i++) {
+                    const stat = document.getElementById(`stat_${i}`);
+                    const btn = document.getElementById(`toggle_btn_${i}`);
+                    if (stat) {
+                        stat.classList.remove('on', 'off');
+                        stat.classList.add('unknown');
+                    }
+                    if (btn) {
+                        btn.classList.remove('on', 'off');
+                        btn.classList.add('unknown');
+                        btn.innerText = 'OFF';
+                    }
+                }
+            });
     }
 
     document.addEventListener('DOMContentLoaded', () => {

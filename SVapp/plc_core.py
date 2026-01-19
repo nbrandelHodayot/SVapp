@@ -13,7 +13,8 @@ import monitor_config
 from monitor_config import (
     SHABBAT_TIME_Y_BASE, SHABBAT_STEP_Y, START_TIME_X, STOP_TIME_X,
     DIGIT_W, DIGIT_H, DIGIT_MAPS, PLC_GREEN, STATUS_POINT_X,
-    SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X, SHABBAT_CLOCK_LAYOUT
+    SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X, SHABBAT_CLOCK_LAYOUT,
+    SHABBAT_STATUS_POINTS_BOYS, SHABBAT_DIGIT_Y_BASE
 )
 
 logger = logging.getLogger(__name__)
@@ -58,11 +59,11 @@ def context_to_filename(context_key):
         "STATUS_GIRLS": ["status_girls", "girls_status"],
         "STATUS_PUBLIC": ["status_public", "public_status"],
         "STATUS_SHABBAT": ["status_shabbat", "shabbat_status"],
-        "BOYS_SHABBAT_AC1": ["boys_shabbat_ac1", "shabbat_ac1"],
-        "BOYS_SHABBAT_AC2": ["boys_shabbat_ac2", "shabbat_ac2"],
-        "BOYS_SHABBAT_ROOM_LIGHTS": ["boys_shabbat_room", "shabbat_room"],
-        "BOYS_SHABBAT_BATHROOM_LIGHTS": ["boys_shabbat_bathroom", "shabbat_bathroom"],
-        "BOYS_SHABBAT_HEATER": ["boys_shabbat_heater", "shabbat_heater"],
+        "BOYS_SHABBAT_AC1": ["control_boys_shabbat_ac1", "02.1.3.1 control_boys_shabbat_ac1", "boys_shabbat_ac1", "shabbat_ac1"],
+        "BOYS_SHABBAT_AC2": ["control_boys_shabbat_ac2", "boys_shabbat_ac2", "shabbat_ac2"],
+        "BOYS_SHABBAT_ROOM_LIGHTS": ["control_boys_shabbat_room", "boys_shabbat_room", "shabbat_room"],
+        "BOYS_SHABBAT_BATHROOM_LIGHTS": ["control_boys_shabbat_bathroom", "boys_shabbat_bathroom", "shabbat_bathroom"],
+        "BOYS_SHABBAT_HEATER": ["control_boys_shabbat_heater", "boys_shabbat_heater", "shabbat_heater"],
         "GIRLS_SHABBAT_AC1": ["girls_shabbat_ac1"],
         "GIRLS_SHABBAT_AC2": ["girls_shabbat_ac2"],
         "GIRLS_SHABBAT_ROOM_LIGHTS": ["girls_shabbat_room"],
@@ -458,6 +459,25 @@ def get_coords_dynamic(action):
         target = back_config.get(clean_action)
         if target: return target
 
+    # ו. כפתורי toggle של שעוני שבת - משתמשים באותן קואורדינטות כמו נורות הביקורת
+    if action.startswith("TIMER_") and action.endswith("_TOGGLE"):
+        timer_num = action.replace("TIMER_", "").replace("_TOGGLE", "")
+        timer_key = f"timer_{timer_num}"
+        
+        # קבלת הקואורדינטות מ-SHABBAT_STATUS_POINTS_BOYS
+        if hasattr(monitor_config, 'SHABBAT_STATUS_POINTS_BOYS'):
+            status_points = monitor_config.SHABBAT_STATUS_POINTS_BOYS
+            if timer_key in status_points:
+                x, y = status_points[timer_key]
+                # הקונטקסט יהיה לפי ה-context_name שמועבר, או נלקח מהקונטקסט הנוכחי
+                # בדרך כלל זה יהיה BOYS_SHABBAT_AC1, BOYS_SHABBAT_AC2, וכו'
+                return {
+                    "x": x,
+                    "y": y,
+                    # ה-N יקבע לפי ה-context_name שמועבר לפונקציה
+                    "n": None  # יקבע לפי context_name
+                }
+
     return None
     
 
@@ -653,41 +673,77 @@ def parse_buildings_at(bw_img, y_row):
     return active
 
 def is_pixel_active_green(pixel):
-    """בודק האם הפיקסל בטווח הירוק המדויק (0, 250-255, 0)"""
+    """בודק האם הפיקסל בטווח הירוק - גמיש יותר לזיהוי נורות"""
     r, g, b = pixel
-    return r == 0 and 250 <= g <= 255 and b == 0
+    # ירוק = G גבוה, R ו-B נמוכים
+    # טווח גמיש יותר: R < 50, G > 200, B < 50
+    return r < 50 and g > 200 and b < 50
 
 def get_digit_at(img, x_start, y_start):
+    """
+    מזהה ספרה אחת לפי מיקום - מותאם למימדים 14x9 (רוחב x גובה)
+    התבניות DIGIT_MAPS הן ב-10x15, אז נדגום את החלק המרכזי ונשתמש ב-scale
+    """
     best_digit = "?"
     max_score = -1
     
-    # דגימה מהירה של האזור (10x15)
+    # מימדים מעודכנים: 14x9 (רוחב x גובה)
+    digit_w = monitor_config.DIGIT_W  # 14
+    digit_h = monitor_config.DIGIT_H   # 9
+    
+    # דגימה מהירה של האזור (14x9 = 126 פיקסלים)
     actual = []
-    for r in range(15):
-        for c in range(10):
-            p = img.getpixel((x_start + c, y_start + r))
-            actual.append(1 if sum(p) < 400 else 0) # סף רגישות גבוה יותר
+    try:
+        for r in range(digit_h):
+            for c in range(digit_w):
+                x = x_start + c
+                y = y_start + r
+                if 0 <= x < img.width and 0 <= y < img.height:
+                    p = img.getpixel((x, y))
+                    # סף רגישות - פיקסל כהה = 1, פיקסל בהיר = 0
+                    # נשתמש בסף נמוך יותר לזיהוי טקסט
+                    actual.append(1 if sum(p) < 500 else 0)
+                else:
+                    actual.append(0)  # מחוץ לגבולות = 0
+    except Exception as e:
+        logger.debug(f"Error sampling digit area at ({x_start}, {y_start}): {e}")
+        return "?"
 
+    # השוואה עם תבניות הספרות (התבניות ב-10x15, נמיר ל-14x9)
     for digit, pattern in monitor_config.DIGIT_MAPS.items():
         score = 0
-        pattern_flat = [0] * 150
-        # הפיכת ה-pattern לרשימה שטוחה להשוואה מהירה
+        pattern_flat = [0] * (digit_w * digit_h)  # 14*9 = 126
+        
+        # המרת התבנית הישנה (10x15) למימדים החדשים (14x9)
+        # scale: 14/10 = 1.4 (רוחב), 9/15 = 0.6 (גובה)
         for row_idx, cols in pattern:
-            for c in cols:
-                if 0 <= c < 10: pattern_flat[row_idx * 10 + c] = 1
+            # התאמת שורה: נדגום את השורות 3-11 מתוך 15 (החלק המרכזי)
+            # 9 שורות מתוך 15 = נדגום מ-3 עד 12
+            if 3 <= row_idx < 12:  # 9 שורות מרכזיות
+                mapped_row = row_idx - 3  # 0-8
+                for c in cols:
+                    # התאמת עמודה: scale factor 1.4
+                    scaled_c = int(c * 1.4)
+                    if 0 <= scaled_c < digit_w and 0 <= mapped_row < digit_h:
+                        pattern_flat[mapped_row * digit_w + scaled_c] = 1
         
         # חישוב דמיון
-        for i in range(150):
+        matches = 0
+        total_pattern = sum(pattern_flat)
+        for i in range(len(actual)):
             if actual[i] == pattern_flat[i]:
-                score += 1
+                matches += 1
             elif pattern_flat[i] == 1 and actual[i] == 0:
-                score -= 0.5 # קנס על פיקסל חסר
+                score -= 0.3  # קנס קל על פיקסל חסר
+
+        score = matches - (total_pattern - matches) * 0.3
 
         if score > max_score:
             max_score = score
             best_digit = digit
 
-    return best_digit if max_score > 110 else "?" # דורש לפחות 75% התאמה
+    # דורש לפחות 60% התאמה (75 מתוך 126)
+    return best_digit if max_score > 75 else "?"
 
 def parse_time_box(image, config_key):
     """סורק תיבת זמן שלמה (4 ספרות)"""
@@ -702,6 +758,7 @@ def parse_time_box(image, config_key):
 def parse_shabbat_clocks(image):
     """
     סורקת את כל 4 שעוני השבת בדף ומחזירה רשימה מסודרת של הנתונים.
+    משתמשת בקואורדינטות המדויקות מ-SHABBAT_STATUS_POINTS_BOYS.
     """
     if not image:
         return []
@@ -709,25 +766,44 @@ def parse_shabbat_clocks(image):
     results = []
     
     for i in range(4):
-        # חישוב ה-Y המדויק לכל שעון לפי ה-Step של 145 פיקסלים
-        current_offset = i * monitor_config.SHABBAT_STEP_Y
+        timer_key = f"timer_{i+1}"
         
-        # שימוש בפונקציה שכבר הוספת לסריקת נתוני שעון בודד
+        # חישוב ה-Y offset לפי הקואורדינטות המדויקות
+        # שעון 1: Y=266, שעון 2: Y=412, שעון 3: Y=556, שעון 4: Y=701
+        status_coords = monitor_config.SHABBAT_STATUS_POINTS_BOYS.get(timer_key)
+        if not status_coords:
+            logger.warning(f"Timer {i+1} coordinates not found in SHABBAT_STATUS_POINTS_BOYS")
+            continue
+            
+        status_x, status_y_base = status_coords
+        
+        # חישוב offset Y ביחס לשעון הראשון (266)
+        current_offset = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
+        
+        # שימוש בפונקציה לסריקת נתוני שעון בודד
         clock_data = scan_shabbat_clock(image, current_offset)
         
-        # הוספת אינדקס (1-4) וסטטוס פעולה (נורה ירוקה)
-        # נדגום את הסטטוס לפי הקואורדינטות שסיכמנו (STATUS_POINT_X, SHABBAT_TIME_Y_BASE)
+        # בדיקת סטטוס נורה - שימוש בקואורדינטות המדויקות
+        is_on = False
         try:
-            status_pixel = image.getpixel((monitor_config.STATUS_POINT_X, monitor_config.SHABBAT_TIME_Y_BASE + current_offset))
-            is_on = is_pixel_active_green(status_pixel)
-        except:
+            # בדיקת גבולות התמונה
+            if 0 <= status_x < image.width and 0 <= status_y_base < image.height:
+                status_pixel = image.getpixel((status_x, status_y_base))
+                is_on = is_pixel_active_green(status_pixel)
+                
+                # לוג לדיבאג
+                logger.debug(f"Timer {i+1} status check: pixel({status_x}, {status_y_base}) = {status_pixel}, is_on = {is_on}")
+            else:
+                logger.warning(f"Timer {i+1} status coordinates out of bounds: ({status_x}, {status_y_base}) vs image size ({image.width}, {image.height})")
+        except Exception as e:
+            logger.error(f"Error checking timer {i+1} status: {e}")
             is_on = False
             
-        # בניית האובייקט בפורמט שה-HTML שלך מכיר
+        # בניית האובייקט בפורמט שה-HTML מכיר
         results.append({
             "index": i + 1,
             "on_time": clock_data["start"],     # 'start' מהפונקציה scan_shabbat_clock
-            "off_time": clock_data["stop"],      # 'stop' מהפונקציה scan_shabbat_clock
+            "off_time": clock_data["stop"],     # 'stop' מהפונקציה scan_shabbat_clock
             "is_on": is_on,
             "buildings": clock_data["buildings"],
             "days": clock_data["days"]
@@ -787,41 +863,57 @@ def get_controller_time():
         
         
 def scan_shabbat_clock(img, offset_y):
-    """סורקת שעון בודד לפי היסט ה-Y שלו"""
+    """סורקת שעון בודד לפי היסט ה-Y שלו - משתמשת בקואורדינטות המדויקות"""
     
-    # 1. פענוח זמנים (OCR)
+    # Y של שורת הספרות לשעון זה
+    digit_y = monitor_config.SHABBAT_DIGIT_Y_BASE + offset_y
+    
+    # 1. פענוח זמנים (OCR) - 4 ספרות מימין לשמאל
     def get_time_string(x_list):
         digits = []
         for x in x_list:
-            # גזירת אזור הספרה מהתמונה
-            digit_box = img.crop((x, SHABBAT_TIME_Y_BASE + offset_y, 
-                                  x + DIGIT_W, SHABBAT_TIME_Y_BASE + offset_y + DIGIT_H))
-            digit = get_digit_at(img, x, SHABBAT_TIME_Y_BASE + offset_y)
-            digits.append(digit if digit else "?")
+            # גזירת אזור הספרה מהתמונה - מימדים: 14x9 (רוחב x גובה)
+            try:
+                # בדיקת גבולות
+                if 0 <= x < img.width and 0 <= digit_y < img.height:
+                    digit = get_digit_at(img, x, digit_y)
+                    digits.append(digit if digit else "?")
+                else:
+                    digits.append("?")
+            except Exception as e:
+                logger.debug(f"Error reading digit at ({x}, {digit_y}): {e}")
+                digits.append("?")
         
         # בניית פורמט HH:MM (למשל 0800 -> 08:00)
         res = "".join(digits)
-        return f"{res[:2]}:{res[2:]}" if len(res) == 4 else "--:--"
+        return f"{res[:2]}:{res[2:]}" if len(res) == 4 and "?" not in res else "--:--"
 
-    start_time = get_time_string(START_TIME_X)
-    stop_time = get_time_string(STOP_TIME_X)
+    start_time = get_time_string(monitor_config.START_TIME_X)
+    stop_time = get_time_string(monitor_config.STOP_TIME_X)
 
     # 2. בדיקת ימים פעילים
     active_days = []
-    for day, x in SHABBAT_DAYS_X.items():
-        # בודק פיקסל בודד במיקום היום
-        pixel = img.getpixel((x, SHABBAT_TIME_Y_BASE + offset_y + 2)) # +2 לתיקון אנכי קל
-        if is_pixel_active_green(pixel):
-            active_days.append(day)
+    days_y = monitor_config.SHABBAT_TIME_Y_BASE + offset_y + 2  # Y של שורת הימים
+    for day, x in monitor_config.SHABBAT_DAYS_X.items():
+        try:
+            if 0 <= x < img.width and 0 <= days_y < img.height:
+                pixel = img.getpixel((x, days_y))
+                if is_pixel_active_green(pixel):
+                    active_days.append(day)
+        except Exception as e:
+            logger.debug(f"Error checking day {day} at ({x}, {days_y}): {e}")
 
     # 3. בדיקת מבנים פעילים
     active_buildings = []
-    for bld, x in SHABBAT_BUILDINGS_X.items():
-        # נקודת הבדיקה של המבנים היא מעט מעל השעון (Y התחלתי 229 בערך)
-        target_y = 229 + offset_y
-        pixel = img.getpixel((x, target_y))
-        if is_pixel_active_green(pixel):
-            active_buildings.append(bld)
+    buildings_y = 229 + offset_y  # Y של שורת המבנים (מעט מעל השעון)
+    for bld, x in monitor_config.SHABBAT_BUILDINGS_X.items():
+        try:
+            if 0 <= x < img.width and 0 <= buildings_y < img.height:
+                pixel = img.getpixel((x, buildings_y))
+                if is_pixel_active_green(pixel):
+                    active_buildings.append(bld)
+        except Exception as e:
+            logger.debug(f"Error checking building {bld} at ({x}, {buildings_y}): {e}")
             
     # 4. בדיקת חימום מים (אם מדובר בטאב HEATER)
     active_heaters = check_heater_buildings(img, offset_y)

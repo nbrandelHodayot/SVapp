@@ -4,17 +4,18 @@
     <div class="timer-header">
         <div class="timer-info-top">
             <span class="timer-label">זמן {{ label }}</span>
-            <div class="status-indicator unknown" id="stat_{{ index }}"></div>
+            <div class="timer-control-group">
+                <div class="status-indicator unknown" id="stat_{{ index }}"></div>
+                <button type="button" 
+                        class="shabbat-toggle-btn unknown" 
+                        id="toggle_btn_{{ index }}"
+                        onclick="handleControlAction('TIMER_{{ index }}_TOGGLE', '{{ active_ctx }}')">
+                    OFF
+                </button>
+            </div>
         </div>
-        <div class="timer-times">
-            <div class="time-group">
-                <span class="time-label">ON</span>
-                <span class="time-val" id="time_on_{{ index }}">--:--</span>
-            </div>
-            <div class="time-group">
-                <span class="time-label">OFF</span>
-                <span class="time-val" id="time_off_{{ index }}">--:--</span>
-            </div>
+        <div class="timer-times-display">
+            <span class="time-display-text" id="time_display_{{ index }}">--:-- / --:--</span>
         </div>
     </div>
 
@@ -29,14 +30,6 @@
         <span class="section-title">ימי פעילות:</span>
         <div class="chips-container days-container" id="days_{{ index }}">
             </div>
-    </div>
-
-    <div class="timer-actions">
-        <button type="button" 
-                class="shabbat-toggle-btn" 
-                onclick="handleControlAction('TIMER_{{ index }}_TOGGLE', '{{ active_ctx }}')">
-            שינוי מצב (ON/OFF)
-        </button>
     </div>
 </div>
 {% endmacro %}
