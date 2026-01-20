@@ -30,6 +30,8 @@
         var timeout = {{ config.INACTIVITY_TIMEOUT or 300 }};
         // הגדרת הקונטקסט הנוכחי כמשתנה גלובלי לשימוש בכל ה-JS
         const CURRENT_PAGE_CONTEXT = "{% block active_ctx %}INDEX{% endblock %}";
+        // מצב סימולציה - במצב זה אין חזרה אוטומטית לדף הבית
+        const SIMULATION_MODE = {{ 'true' if SIMULATION_MODE else 'false' }};
     </script>
 </head>
 
@@ -73,11 +75,19 @@
     <script>
         /**
          * פונקציית ניווט מעודכנת - כוללת שליחת Context
+         * במצב סימולציה - מדלג על שליחת פקודה לבקר ועובר ישר לדף
          */
         window.navigateTo = async function(path, action) {
             console.log("Navigating from:", CURRENT_PAGE_CONTEXT, "to:", path, "via:", action);
             const footer = document.getElementById('status-message');
             if (footer) footer.innerText = "מנווט...";
+
+            // במצב סימולציה - מדלג על שליחת פקודה לבקר ועובר ישר לדף
+            if (window.SIMULATION_MODE) {
+                console.log("SIMULATION_MODE: Skipping PLC sync, navigating directly");
+                window.location.href = path;
+                return;
+            }
 
             try {
                 // שליחת הפקודה עם הפרמטר context הקריטי
@@ -102,12 +112,20 @@
 
         /**
          * פונקציית חזרה גלובלית מעודכנת
+         * במצב סימולציה - מדלג על שליחת פקודה לבקר
          */
         async function handleGlobalBack() {
             const urlElement = document.getElementById('nav-back-url');
             const actionElement = document.getElementById('nav-back-action');
             const targetUrl = urlElement ? urlElement.value.trim() : '/';
             const backAction = actionElement ? actionElement.value.trim() : '';
+            
+            // במצב סימולציה - מדלג על שליחת פקודה לבקר ועובר ישר לדף
+            if (window.SIMULATION_MODE) {
+                console.log("SIMULATION_MODE: Skipping PLC sync on back, navigating directly");
+                window.location.href = targetUrl;
+                return;
+            }
             
             if (backAction) {
                 const footer = document.getElementById('status-message');

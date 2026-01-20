@@ -322,9 +322,9 @@ COMMANDS = {
     "B10_ACb_ON": {"x": 73, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_ACb_OFF": {"x": 125, "y": 199, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_R_ON": {"x": 75, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B10_R_OFF": {"x": 127, "y": 162, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # ייתכן שצריך לבדוק
-    "B10_WC_ON": {"x": 399, "y": 276, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # ייתכן שצריך לבדוק
-    "B10_WC_OFF": {"x": 129, "y": 284, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_R_OFF": {"x": 127, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: Y=243 כמו ON
+    "B10_WC_ON": {"x": 75, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: X=75 כמו שאר בית 10, Y=325 כמו נורה
+    "B10_WC_OFF": {"x": 129, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: Y=325 כמו נורה
     "B10_H_ON": {"x": 70, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_H_OFF": {"x": 118, "y": 321, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     # C20
@@ -368,7 +368,7 @@ COMMANDS = {
     # =========================================================================
     # בית 12a
     "B12a_AC_ON": {"x": 733, "y": 220, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B12a_AC_OFF": {"x": 124, "y": 247, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # ייתכן שצריך לבדוק
+    "B12a_AC_OFF": {"x": 783, "y": 220, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: X=783 כמו B12a_R_OFF, Y=220 כמו ON
     "B12a_R_ON": {"x": 724, "y": 259, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12a_R_OFF": {"x": 783, "y": 257, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12a_WC_ON": {"x": 731, "y": 297, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
@@ -377,16 +377,16 @@ COMMANDS = {
     "B12a_H_OFF": {"x": 786, "y": 336, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     # בית 12b
     "B12b_AC_ON": {"x": 390, "y": 216, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B12b_AC_OFF": {"x": 397, "y": 299, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # ייתכן שצריך לבדוק
+    "B12b_AC_OFF": {"x": 449, "y": 216, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: X=449 כמו B12b_R_OFF, Y=216 כמו ON
     "B12b_WC_ON": {"x": 397, "y": 299, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12b_WC_OFF": {"x": 453, "y": 295, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12b_R_ON": {"x": 401, "y": 259, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12b_R_OFF": {"x": 458, "y": 260, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     # בית 12c
     "B12c_AC_ON": {"x": 70, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B12c_AC_OFF": {"x": 128, "y": 327, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_AC_OFF": {"x": 128, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: Y=324 כמו ON
     "B12c_R_ON": {"x": 75, "y": 262, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B12c_R_OFF": {"x": 453, "y": 262, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # ייתכן שצריך לבדוק
+    "B12c_R_OFF": {"x": 129, "y": 262, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: X=129 כמו B12c_WC_OFF, Y=262 כמו ON
     "B12c_WC_ON": {"x": 67, "y": 297, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B12c_WC_OFF": {"x": 129, "y": 301, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     # בית 13a
@@ -407,9 +407,9 @@ COMMANDS = {
     "B13b_WC_OFF": {"x": 450, "y": 567, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     # בית 13c
     "B13c_AC_ON": {"x": 64, "y": 495, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B13c_AC_OFF": {"x": 122, "y": 488, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
-    "B13c_R_ON": {"x": 398, "y": 527, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # ייתכן שצריך לבדוק
-    "B13c_R_OFF": {"x": 117, "y": 528, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_AC_OFF": {"x": 122, "y": 495, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: Y=495 כמו ON
+    "B13c_R_ON": {"x": 73, "y": 532, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: X=73 כמו B13c_WC_ON, Y=532 כמו נורה
+    "B13c_R_OFF": {"x": 117, "y": 532, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # תוקן: Y=532 כמו נורה
     "B13c_WC_ON": {"x": 73, "y": 573, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
     "B13c_WC_OFF": {"x": 120, "y": 574, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
 }

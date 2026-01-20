@@ -59,7 +59,7 @@ def context_to_filename(context_key):
         "STATUS_GIRLS": ["status_girls", "girls_status"],
         "STATUS_PUBLIC": ["status_public", "public_status"],
         "STATUS_SHABBAT": ["status_shabbat", "shabbat_status"],
-        "BOYS_SHABBAT_AC1": ["control_boys_shabbat_ac1", "02.1.3.1 control_boys_shabbat_ac1", "boys_shabbat_ac1", "shabbat_ac1"],
+        "BOYS_SHABBAT_AC1": ["02.1.3.1 control_boys_shabbat_ac1", "control_boys_shabbat_ac1", "boys_shabbat_ac1", "shabbat_ac1"],
         "BOYS_SHABBAT_AC2": ["control_boys_shabbat_ac2", "boys_shabbat_ac2", "shabbat_ac2"],
         "BOYS_SHABBAT_ROOM_LIGHTS": ["control_boys_shabbat_room", "boys_shabbat_room", "shabbat_room"],
         "BOYS_SHABBAT_BATHROOM_LIGHTS": ["control_boys_shabbat_bathroom", "boys_shabbat_bathroom", "shabbat_bathroom"],
@@ -157,8 +157,18 @@ def load_simulation_image(context_key=None, default_name="default", random_varia
     
     logger.info(f"SIMULATION_MODE: Found {len(images)} image(s): {[os.path.basename(img) for img in images]}")
     
+    # סינון תמונות לפי context_key - העדפה לתמונות שמתאימות ל-context
+    filtered_images = images
+    if context_key:
+        # נסה למצוא תמונות שמתאימות ל-context (למשל BOYS_SHABBAT_AC1 צריך תמונות של boys)
+        context_lower = context_key.lower()
+        matching_images = [img for img in images if context_lower in os.path.basename(img).lower()]
+        if matching_images:
+            filtered_images = matching_images
+            logger.info(f"SIMULATION_MODE: Filtered to {len(filtered_images)} matching images for context {context_key}")
+    
     # בחירת תמונה (אקראית או הראשונה)
-    selected = random.choice(images) if random_variant and len(images) > 1 else images[0]
+    selected = random.choice(filtered_images) if random_variant and len(filtered_images) > 1 else filtered_images[0]
     
     try:
         img = Image.open(selected)
@@ -358,33 +368,45 @@ def fetch_plc_status(area):
 def fetch_shabbat_data(area, context_key):
     """
     מושכת תמונה מהבקר ומפענחת את כל נתוני שעוני השבת עבור הטאב הנבחר.
+    וודא שהבקר נמצא בדף הנכון לפני משיכת התמונה.
     """
     import datetime as dt
     area_upper = area.upper()
     img = None
     
     try:
-        # 1. משיכת התמונה העדכנית מהבקר
+        # 1. וידוא שהבקר נמצא בדף הנכון לפני הצילום
+        target_n = config_app.CONTEXT_N.get(context_key)
+        if target_n:
+            current_n = get_screen_n_by_pixel_check()
+            if current_n != target_n:
+                logger.info(f"Navigating PLC to {context_key} (N: {target_n})")
+                send_physical_click(1, 1, target_n)  # לחיצת ניווט שקטה
+                time.sleep(0.7)  # המתנה לטעינת מסך
+        
+        # 2. משיכת התמונה העדכנית מהבקר
         if getattr(config_app, 'SIMULATION_MODE', False):
             img = load_simulation_image(context_key, default_name="default", random_variant=True)
             if not img:
                 logger.warning(f"SIMULATION_MODE: No image found for context {context_key}")
                 return {"clocks": [], "time": "--:--", "error": "No simulation image"}
         else:
-            response = session.get(config_app.CGI_URL, timeout=5)
-            if response.status_code == 200 and len(response.content) > 0:
-                img = Image.open(io.BytesIO(response.content)).convert('RGB')
-            else:
-                logger.error(f"Failed to fetch image from PLC: Status {response.status_code}")
+            # שימוש ב-fetch_plc_image עם context_key כדי לוודא שהתמונה מהדף הנכון
+            img_data = fetch_plc_image(context_key=context_key)
+            if not img_data:
+                logger.error("Failed to fetch image from PLC")
                 return {"clocks": [], "time": "--:--", "error": "Connection error"}
+            img = Image.open(io.BytesIO(img_data)).convert('RGB')
 
         if not img:
             return {"clocks": [], "time": "--:--", "error": "No image available"}
 
-        # 2. פענוח נתוני השעונים (זמנים, ימים ומבנים)
+        # 3. פענוח נתוני השעונים (זמנים, ימים ומבנים)
         clocks_list = parse_shabbat_clocks(img)
+        
+        logger.info(f"Parsed {len(clocks_list)} shabbat clocks for context {context_key}")
 
-        # 3. החזרת הנתונים ל-Frontend
+        # 4. החזרת הנתונים ל-Frontend
         return {
             "clocks": clocks_list, # הרשימה שסרקנו
             "time": dt.datetime.now().strftime("%H:%M:%S"),
@@ -392,7 +414,9 @@ def fetch_shabbat_data(area, context_key):
         }
 
     except Exception as e:
+        import traceback
         logger.error(f"Error fetching shabbat data: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {"clocks": [], "time": "--:--", "error": str(e)}
         
 # ==========================================
@@ -843,71 +867,291 @@ def is_pixel_active_green(pixel):
     # טווח גמיש יותר: R < 50, G > 200, B < 50
     return r < 50 and g > 200 and b < 50
 
+def check_shabbat_button_status(img, offset_y):
+    """
+    בודק מצב כפתור הפעלה/כיבוי של שעון שבת לפי פיקסלים אסטרטגיים.
+    
+    בדיקה נעשית בפיקסלים: x=90, y מ-264 עד 271 (עם offset לפי השעון)
+    
+    Args:
+        img: PIL Image object
+        offset_y: היסט Y לפי השעון (0 לשעון 1, 146 לשעון 2, וכו')
+    
+    Returns:
+        "ON" אם הכפתור במצב פעיל (ירוק), "OFF" אם כבוי (אדום), או "UNKNOWN" אם לא ניתן לזהות
+    """
+    try:
+        check_x = monitor_config.SHABBAT_BUTTON_X_CHECK  # 90
+        check_y_start = monitor_config.SHABBAT_BUTTON_Y_CHECK_START + offset_y  # 264 + offset
+        check_y_end = monitor_config.SHABBAT_BUTTON_Y_CHECK_END + offset_y  # 271 + offset
+        
+        # בדיקת גבולות
+        if not (0 <= check_x < img.width):
+            logger.warning(f"Button check X out of bounds: {check_x} (image width: {img.width})")
+            return "UNKNOWN"
+        if not (0 <= check_y_start < img.height and 0 <= check_y_end < img.height):
+            logger.warning(f"Button check Y out of bounds: {check_y_start}-{check_y_end} (image height: {img.height})")
+            return "UNKNOWN"
+        
+        # וידוא ש-check_y_start <= check_y_end
+        if check_y_start > check_y_end:
+            logger.warning(f"Invalid Y range: start={check_y_start} > end={check_y_end}")
+            return "UNKNOWN"
+        
+        green_count = 0
+        red_count = 0
+        total_checked = 0
+        
+        # סריקה של הפיקסלים מ-y=264 עד y=271
+        logger.debug(f"Scanning pixels: x={check_x}, y from {check_y_start} to {check_y_end} (image size: {img.width}x{img.height})")
+        y_range = list(range(check_y_start, check_y_end + 1))
+        logger.debug(f"Y range list: {y_range} (length: {len(y_range)})")
+        
+        for y in y_range:
+            try:
+                # בדיקת גבולות נוספת לפני קריאת הפיקסל
+                if not (0 <= check_x < img.width and 0 <= y < img.height):
+                    logger.debug(f"Pixel ({check_x}, {y}) out of bounds, skipping")
+                    continue
+                    
+                pixel = img.getpixel((check_x, y))
+                r, g, b = pixel
+                
+                # בדיקת ירוק: RGB(0,250,0) עד RGB(0,255,0)
+                if r < 10 and 250 <= g <= 255 and b < 10:
+                    green_count += 1
+                
+                # בדיקת אדום: RGB(250,0,0) עד RGB(255,0,0)
+                if 250 <= r <= 255 and g < 10 and b < 10:
+                    red_count += 1
+                
+                total_checked += 1
+            except Exception as e:
+                logger.warning(f"Error reading pixel at ({check_x}, {y}): {e}")
+                continue
+        
+        logger.info(f"Button status check: x={check_x}, y={check_y_start}-{check_y_end}, green={green_count}, red={red_count}, total={total_checked}")
+        
+        # קביעת מצב לפי רוב הפיקסלים
+        if total_checked == 0:
+            logger.warning("No pixels checked for button status")
+            return "UNKNOWN"
+        
+        # אם רוב הפיקסלים ירוקים - ON
+        if green_count > red_count and green_count >= total_checked * 0.5:
+            return "ON"
+        
+        # אם רוב הפיקסלים אדומים - OFF
+        if red_count > green_count and red_count >= total_checked * 0.5:
+            return "OFF"
+        
+        # אם אין רוב ברור - UNKNOWN
+        logger.debug(f"Button status unclear: green={green_count}, red={red_count}, total={total_checked}")
+        return "UNKNOWN"
+        
+    except Exception as e:
+        logger.error(f"Error checking shabbat button status: {e}")
+        return "UNKNOWN"
+
+def get_shabbat_clock_time(clock_id, time_type="ON", context_name=None, img=None):
+    """
+    מפענח שעת שעון שבת לפי clock_id.
+    
+    Args:
+        clock_id: מזהה השעון - יכול להיות 1-4, "timer_1" עד "timer_4", או "1" עד "4"
+        time_type: "ON" (שעת הפעלה) או "OFF" (שעת הפסקה) - ברירת מחדל: "ON"
+        context_name: שם הקונטקסט (למשל "BOYS_SHABBAT_AC1") - נדרש אם img=None
+        img: אובייקט תמונה (PIL Image) - אם None, ימשוך מהבקר לפי context_name
+    
+    Returns:
+        מחרוזת של השעה בפורמט "HH:MM" או "--:--" אם לא הצליח
+    
+    Uses:
+        - קואורדינטות מ-monitor_config.py (START_TIME_X, STOP_TIME_X, SHABBAT_DIGIT_Y_BASE, SHABBAT_STEP_Y)
+        - פונקציית get_digit_at() לזיהוי ספרות לפי pixel-based recognition
+        - DIGIT_MAPS מ-monitor_config.py לזיהוי תבניות הספרות
+    """
+    # נרמול clock_id לפורמט אחיד
+    if isinstance(clock_id, str):
+        if clock_id.startswith("timer_"):
+            clock_id = int(clock_id.replace("timer_", ""))
+        else:
+            try:
+                clock_id = int(clock_id)
+            except ValueError:
+                logger.error(f"Invalid clock_id format: {clock_id}")
+                return "--:--"
+    
+    if not (1 <= clock_id <= 4):
+        logger.error(f"clock_id must be between 1 and 4, got: {clock_id}")
+        return "--:--"
+    
+    # חישוב offset Y לפי clock_id
+    timer_key = f"timer_{clock_id}"
+    status_coords = monitor_config.SHABBAT_STATUS_POINTS_BOYS.get(timer_key)
+    if not status_coords:
+        logger.error(f"Timer {clock_id} coordinates not found in SHABBAT_STATUS_POINTS_BOYS")
+        return "--:--"
+    
+    # בדיקת בטיחות - וודא ש-status_coords הוא tuple/list
+    if not isinstance(status_coords, (tuple, list)) or len(status_coords) != 2:
+        logger.error(f"Timer {clock_id} invalid coordinates format: {status_coords} (type: {type(status_coords)})")
+        return "--:--"
+    
+    status_x, status_y_base = status_coords
+    offset_y = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
+    
+    # Y של שורת הספרות לשעון זה
+    digit_y = monitor_config.SHABBAT_DIGIT_Y_BASE + offset_y
+    
+    # בחירת רשימת X לפי סוג הזמן
+    if time_type.upper() == "OFF":
+        x_list = monitor_config.STOP_TIME_X
+    else:
+        x_list = monitor_config.START_TIME_X
+    
+    # משיכת תמונה אם לא סופקה
+    if img is None:
+        if not context_name:
+            logger.error("Either img or context_name must be provided")
+            return "--:--"
+        
+        try:
+            # וידוא שהבקר נמצא בדף הנכון
+            target_n = config_app.CONTEXT_N.get(context_name)
+            if target_n:
+                current_n = get_screen_n_by_pixel_check()
+                if current_n != target_n:
+                    logger.info(f"Navigating PLC to {context_name} (N: {target_n})")
+                    send_physical_click(1, 1, target_n)
+                    time.sleep(0.7)
+            
+            # משיכת תמונה מהבקר
+            img_data = fetch_plc_image(context_key=context_name)
+            if not img_data:
+                logger.error("Failed to fetch image from PLC")
+                return "--:--"
+            
+            img = Image.open(io.BytesIO(img_data)).convert('RGB')
+        except Exception as e:
+            logger.error(f"Error fetching image for shabbat clock: {e}")
+            return "--:--"
+    
+    # דגימת פיקסלים אסטרטגיים לכל ספרה (4 ספרות: HH:MM)
+    digits = []
+    for x in x_list:
+        try:
+            # בדיקת גבולות
+            if 0 <= x < img.width and 0 <= digit_y < img.height:
+                # שימוש ב-get_digit_at() לזיהוי הספרה לפי pixel-based recognition
+                digit = get_digit_at(img, x, digit_y)
+                digits.append(digit if digit and digit != "?" else "?")
+            else:
+                logger.warning(f"Digit coordinates out of bounds: ({x}, {digit_y})")
+                digits.append("?")
+        except Exception as e:
+            logger.debug(f"Error reading digit at ({x}, {digit_y}): {e}")
+            digits.append("?")
+    
+    # בניית מחרוזת השעה בפורמט HH:MM
+    if len(digits) == 4 and "?" not in digits:
+        time_str = f"{digits[0]}{digits[1]}:{digits[2]}{digits[3]}"
+        logger.debug(f"Shabbat clock {clock_id} ({time_type}): {time_str}")
+        return time_str
+    else:
+        logger.warning(f"Failed to read all digits for clock {clock_id}: {digits}")
+        return "--:--"
+
 def get_digit_at(img, x_start, y_start):
     """
-    מזהה ספרה אחת לפי מיקום - מותאם למימדים 14x9 (רוחב x גובה)
-    התבניות DIGIT_MAPS הן ב-10x15, אז נדגום את החלק המרכזי ונשתמש ב-scale
+    מזהה ספרה אחת לפי מיקום - דגימת פיקסלים אסטרטגיים בלבד (3-5 פיקסלים לכל ספרה)
+    
+    Logic for Shabbat Clocks (Digit Recognition):
+    - Each digit position (0-9) is treated as a grid
+    - Instead of reading the whole image, we sample 3-5 "Strategic Pixels" for each digit box
+    - If any sampled pixel fails the threshold (sum < 200), return "?"
+    - Uses threshold sum(pixel) > 600 for bright pixels (to account for RGB variations)
+    
+    Args:
+        img: PIL Image object
+        x_start: X coordinate of digit top-left corner
+        y_start: Y coordinate of digit top-left corner
+    
+    Returns:
+        Digit string ("0"-"9") or "?" if recognition fails
     """
     best_digit = "?"
     max_score = -1
     
-    # מימדים מעודכנים: 14x9 (רוחב x גובה)
+    # מימדים: 14x9 (רוחב x גובה)
     digit_w = monitor_config.DIGIT_W  # 14
     digit_h = monitor_config.DIGIT_H   # 9
     
-    # דגימה מהירה של האזור (14x9 = 126 פיקסלים)
-    actual = []
-    try:
-        for r in range(digit_h):
-            for c in range(digit_w):
-                x = x_start + c
-                y = y_start + r
-                if 0 <= x < img.width and 0 <= y < img.height:
-                    p = img.getpixel((x, y))
-                    # סף רגישות - פיקסל כהה = 1, פיקסל בהיר = 0
-                    # נשתמש בסף נמוך יותר לזיהוי טקסט
-                    actual.append(1 if sum(p) < 500 else 0)
-                else:
-                    actual.append(0)  # מחוץ לגבולות = 0
-    except Exception as e:
-        logger.debug(f"Error sampling digit area at ({x_start}, {y_start}): {e}")
-        return "?"
-
-    # השוואה עם תבניות הספרות (התבניות ב-10x15, נמיר ל-14x9)
+    # דגימת פיקסלים אסטרטגיים בלבד מהתבניות
+    # במקום לקרוא את כל התמונה, נדגום רק את הפיקסלים הרלוונטיים מהתבנית
     for digit, pattern in monitor_config.DIGIT_MAPS.items():
         score = 0
-        pattern_flat = [0] * (digit_w * digit_h)  # 14*9 = 126
+        total_checks = 0
+        failed_checks = 0
         
-        # המרת התבנית הישנה (10x15) למימדים החדשים (14x9)
-        # scale: 14/10 = 1.4 (רוחב), 9/15 = 0.6 (גובה)
-        for row_idx, cols in pattern:
-            # התאמת שורה: נדגום את השורות 3-11 מתוך 15 (החלק המרכזי)
-            # 9 שורות מתוך 15 = נדגום מ-3 עד 12
-            if 3 <= row_idx < 12:  # 9 שורות מרכזיות
-                mapped_row = row_idx - 3  # 0-8
-                for c in cols:
-                    # התאמת עמודה: scale factor 1.4
-                    scaled_c = int(c * 1.4)
-                    if 0 <= scaled_c < digit_w and 0 <= mapped_row < digit_h:
-                        pattern_flat[mapped_row * digit_w + scaled_c] = 1
-        
-        # חישוב דמיון
-        matches = 0
-        total_pattern = sum(pattern_flat)
-        for i in range(len(actual)):
-            if actual[i] == pattern_flat[i]:
-                matches += 1
-            elif pattern_flat[i] == 1 and actual[i] == 0:
-                score -= 0.3  # קנס קל על פיקסל חסר
-
-        score = matches - (total_pattern - matches) * 0.3
-
-        if score > max_score:
-            max_score = score
-            best_digit = digit
-
-    # דורש לפחות 60% התאמה (75 מתוך 126)
-    return best_digit if max_score > 75 else "?"
+        try:
+            # דגימת פיקסלים אסטרטגיים מהתבנית
+            # התבנית ב-10x15, נמיר ל-14x9
+            for row_idx, cols in pattern:
+                # התאמת שורה: נדגום את השורות 3-11 מתוך 15 (החלק המרכזי)
+                if 3 <= row_idx < 12:  # 9 שורות מרכזיות
+                    mapped_row = row_idx - 3  # 0-8
+                    for c in cols:
+                        # התאמת עמודה: scale factor 1.4
+                        scaled_c = int(c * 1.4)
+                        if 0 <= scaled_c < digit_w and 0 <= mapped_row < digit_h:
+                            x = x_start + scaled_c
+                            y = y_start + mapped_row
+                            
+                            # בדיקת גבולות
+                            if 0 <= x < img.width and 0 <= y < img.height:
+                                p = img.getpixel((x, y))
+                                pixel_sum = sum(p)
+                                
+                                # Threshold: פיקסל בהיר = sum > 600 (להתחשב בשונות RGB)
+                                # פיקסל כהה = sum < 200
+                                if pixel_sum < 200:
+                                    failed_checks += 1
+                                    # אם פיקסל אסטרטגי נכשל, זה סימן רע
+                                    score -= 0.5
+                                elif pixel_sum > 600:
+                                    # פיקסל בהיר במקום הנכון - התאמה טובה
+                                    score += 1
+                                
+                                total_checks += 1
+                            else:
+                                # מחוץ לגבולות - נחשב ככשל
+                                failed_checks += 1
+                                score -= 0.3
+            
+            # חישוב ציון סופי (נרמול לפי מספר הבדיקות)
+            if total_checks > 0:
+                normalized_score = score / total_checks
+                
+                # אם יותר מדי פיקסלים אסטרטגיים נכשלו, הספרה לא תקינה
+                failure_rate = failed_checks / total_checks if total_checks > 0 else 1.0
+                if failure_rate > 0.4:  # יותר מ-40% כשלים
+                    normalized_score -= 0.5
+                
+                if normalized_score > max_score:
+                    max_score = normalized_score
+                    best_digit = digit
+        except Exception as e:
+            logger.debug(f"Error sampling strategic pixels for digit {digit} at ({x_start}, {y_start}): {e}")
+            continue
+    
+    # דורש ציון מינימלי של 0.3 (30% התאמה)
+    if max_score > 0.3:
+        return best_digit
+    else:
+        # אם כל הפיקסלים האסטרטגיים נכשלו, החזר "?"
+        logger.debug(f"Digit recognition failed at ({x_start}, {y_start}): max_score={max_score:.2f}")
+        return "?"
 
 def parse_time_box(image, config_key):
     """סורק תיבת זמן שלמה (4 ספרות)"""
@@ -938,30 +1182,40 @@ def parse_shabbat_clocks(image):
         if not status_coords:
             logger.warning(f"Timer {i+1} coordinates not found in SHABBAT_STATUS_POINTS_BOYS")
             continue
+        
+        # בדיקת בטיחות - וודא ש-status_coords הוא tuple/list
+        if not isinstance(status_coords, (tuple, list)) or len(status_coords) != 2:
+            logger.error(f"Timer {i+1} invalid coordinates format: {status_coords} (type: {type(status_coords)})")
+            continue
             
         status_x, status_y_base = status_coords
         
         # חישוב offset Y ביחס לשעון הראשון (266)
-        current_offset = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
+        try:
+            current_offset = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
+            # וידוא ש-current_offset הוא int
+            if not isinstance(current_offset, (int, float)):
+                logger.error(f"Timer {i+1} invalid offset: {current_offset} (type: {type(current_offset)})")
+                continue
+        except Exception as e:
+            logger.error(f"Timer {i+1} error calculating offset: {e}, status_y_base={status_y_base}, SHABBAT_TIME_Y_BASE={monitor_config.SHABBAT_TIME_Y_BASE}")
+            continue
         
         # שימוש בפונקציה לסריקת נתוני שעון בודד
-        clock_data = scan_shabbat_clock(image, current_offset)
-        
-        # בדיקת סטטוס נורה - שימוש בקואורדינטות המדויקות
-        is_on = False
         try:
-            # בדיקת גבולות התמונה
-            if 0 <= status_x < image.width and 0 <= status_y_base < image.height:
-                status_pixel = image.getpixel((status_x, status_y_base))
-                is_on = is_pixel_active_green(status_pixel)
-                
-                # לוג לדיבאג
-                logger.debug(f"Timer {i+1} status check: pixel({status_x}, {status_y_base}) = {status_pixel}, is_on = {is_on}")
-            else:
-                logger.warning(f"Timer {i+1} status coordinates out of bounds: ({status_x}, {status_y_base}) vs image size ({image.width}, {image.height})")
+            clock_data = scan_shabbat_clock(image, current_offset)
         except Exception as e:
-            logger.error(f"Error checking timer {i+1} status: {e}")
-            is_on = False
+            import traceback
+            logger.error(f"Timer {i+1} error in scan_shabbat_clock: {e}")
+            logger.error(f"Timer {i+1} traceback: {traceback.format_exc()}")
+            continue
+        
+        # בדיקת סטטוס כפתור - שימוש בפונקציה החדשה לבדיקת פיקסלים אסטרטגיים
+        # הפונקציה scan_shabbat_clock כבר בודקת את מצב הכפתור ומחזירה is_on
+        is_on = clock_data.get("is_on", False)
+        button_status = clock_data.get("button_status", "UNKNOWN")
+        
+        logger.info(f"Timer {i+1} button status: {button_status}, is_on: {is_on}, offset_y: {current_offset}")
             
         # בניית האובייקט בפורמט שה-HTML מכיר
         results.append({
@@ -991,11 +1245,24 @@ def update_shabbat_status():
 def check_heater_buildings(img, offset_y):
     active = []
     # נבדוק נקודת אמצע בתוך הטווח שנתת (למשל Y=230 + ה-offset של השעון)
+    # וידוא ש-HEATER_BUILDINGS הוא dict
+    if not isinstance(monitor_config.HEATER_BUILDINGS, dict):
+        logger.error(f"HEATER_BUILDINGS is not a dict: {type(monitor_config.HEATER_BUILDINGS)}")
+        return active
+    
     for name, coords in monitor_config.HEATER_BUILDINGS.items():
-        target_y = 230 + offset_y 
-        pixel = img.getpixel((coords["x_range"][0], target_y))
-        if is_pixel_active_green(pixel):
-            active.append(name)
+        try:
+            # וידוא ש-coords הוא dict עם x_range
+            if not isinstance(coords, dict) or "x_range" not in coords:
+                logger.error(f"Invalid coords format for {name}: {coords}")
+                continue
+            target_y = 230 + offset_y 
+            pixel = img.getpixel((coords["x_range"][0], target_y))
+            if is_pixel_active_green(pixel):
+                active.append(name)
+        except Exception as e:
+            logger.debug(f"Error checking heater building {name}: {e}")
+            continue
     return active
     
 def get_current_n():
@@ -1029,6 +1296,11 @@ def get_controller_time():
 def scan_shabbat_clock(img, offset_y):
     """סורקת שעון בודד לפי היסט ה-Y שלו - משתמשת בקואורדינטות המדויקות"""
     
+    # בדיקת טיפוס offset_y
+    if not isinstance(offset_y, (int, float)):
+        logger.error(f"scan_shabbat_clock: invalid offset_y type: {type(offset_y)}, value: {offset_y}")
+        raise TypeError(f"offset_y must be int/float, got {type(offset_y)}")
+    
     # Y של שורת הספרות לשעון זה
     digit_y = monitor_config.SHABBAT_DIGIT_Y_BASE + offset_y
     
@@ -1058,36 +1330,71 @@ def scan_shabbat_clock(img, offset_y):
     # 2. בדיקת ימים פעילים
     active_days = []
     days_y = monitor_config.SHABBAT_TIME_Y_BASE + offset_y + 2  # Y של שורת הימים
-    for day, x in monitor_config.SHABBAT_DAYS_X.items():
-        try:
-            if 0 <= x < img.width and 0 <= days_y < img.height:
-                pixel = img.getpixel((x, days_y))
-                if is_pixel_active_green(pixel):
-                    active_days.append(day)
-        except Exception as e:
-            logger.debug(f"Error checking day {day} at ({x}, {days_y}): {e}")
+    # וידוא ש-SHABBAT_DAYS_X הוא dict
+    if not isinstance(monitor_config.SHABBAT_DAYS_X, dict):
+        logger.error(f"SHABBAT_DAYS_X is not a dict: {type(monitor_config.SHABBAT_DAYS_X)}")
+    else:
+        for day, x in monitor_config.SHABBAT_DAYS_X.items():
+            try:
+                if 0 <= x < img.width and 0 <= days_y < img.height:
+                    pixel = img.getpixel((x, days_y))
+                    if is_pixel_active_green(pixel):
+                        active_days.append(day)
+            except Exception as e:
+                logger.debug(f"Error checking day {day} at ({x}, {days_y}): {e}")
 
-    # 3. בדיקת מבנים פעילים
+    # 3. בדיקת מבנים פעילים - שתי שורות (Y=222 ו-Y=279)
     active_buildings = []
-    buildings_y = 229 + offset_y  # Y של שורת המבנים (מעט מעל השעון)
-    for bld, x in monitor_config.SHABBAT_BUILDINGS_X.items():
-        try:
-            if 0 <= x < img.width and 0 <= buildings_y < img.height:
-                pixel = img.getpixel((x, buildings_y))
-                if is_pixel_active_green(pixel):
-                    active_buildings.append(bld)
-        except Exception as e:
-            logger.debug(f"Error checking building {bld} at ({x}, {buildings_y}): {e}")
+    # שורה ראשונה (Y=222): בתים 1, 2, 11א1, 11א2, 11ב1, 11ב2
+    buildings_y_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1', 222) + offset_y
+    # שורה שנייה (Y=279): בתים 2, 3, 4, 5, 9א, 9ב
+    buildings_y_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2', 279) + offset_y
+    
+    # בדיקת שורה ראשונה
+    buildings_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1', {})
+    # וידוא ש-buildings_row1 הוא dict
+    if not isinstance(buildings_row1, dict):
+        logger.error(f"SHABBAT_BUILDINGS_X_ROW1 is not a dict: {type(buildings_row1)}, value: {buildings_row1}")
+    else:
+        for bld, x in buildings_row1.items():
+            try:
+                if 0 <= x < img.width and 0 <= buildings_y_row1 < img.height:
+                    pixel = img.getpixel((x, buildings_y_row1))
+                    if is_pixel_active_green(pixel):
+                        active_buildings.append(bld)
+            except Exception as e:
+                logger.debug(f"Error checking building {bld} (row1) at ({x}, {buildings_y_row1}): {e}")
+    
+    # בדיקת שורה שנייה
+    buildings_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2', {})
+    # וידוא ש-buildings_row2 הוא dict
+    if not isinstance(buildings_row2, dict):
+        logger.error(f"SHABBAT_BUILDINGS_X_ROW2 is not a dict: {type(buildings_row2)}, value: {buildings_row2}")
+    else:
+        for bld, x in buildings_row2.items():
+            try:
+                if 0 <= x < img.width and 0 <= buildings_y_row2 < img.height:
+                    pixel = img.getpixel((x, buildings_y_row2))
+                    if is_pixel_active_green(pixel) and bld not in active_buildings:
+                        active_buildings.append(bld)
+            except Exception as e:
+                logger.debug(f"Error checking building {bld} (row2) at ({x}, {buildings_y_row2}): {e}")
             
     # 4. בדיקת חימום מים (אם מדובר בטאב HEATER)
     active_heaters = check_heater_buildings(img, offset_y)
     active_buildings.extend(active_heaters)
+    
+    # 5. בדיקת מצב כפתור הפעלה/כיבוי לפי פיקסלים אסטרטגיים
+    button_status = check_shabbat_button_status(img, offset_y)
+    is_on = (button_status == "ON")
 
     return {
         "start": start_time,
         "stop": stop_time,
         "days": active_days,
-        "buildings": list(set(active_buildings)) # הסרת כפילויות
+        "buildings": list(set(active_buildings)), # הסרת כפילויות
+        "is_on": is_on,
+        "button_status": button_status
     }
     
     

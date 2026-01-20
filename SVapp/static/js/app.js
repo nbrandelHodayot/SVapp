@@ -8,6 +8,10 @@ if (!window.socket) {
 }
 
 window.socket.on('force_navigate', (data) => {
+    // במצב סימולציה אין חזרה אוטומטית - זה רלוונטי רק למצב אמת
+    if (window.SIMULATION_MODE) {
+        return;
+    }
     const currentPage = window.location.pathname.replace('/', '');
     if (currentPage !== data.target_page && currentPage + '.html' !== data.target_page) {
         window.location.href = "/" + data.target_page;
@@ -15,7 +19,14 @@ window.socket.on('force_navigate', (data) => {
 });
 
 // 2. ניהול זמן חוסר פעילות (Auto Logout)
+// במצב סימולציה אין חזרה אוטומטית - זה רלוונטי רק למצב אמת
 (function() {
+    // בדיקה אם זה מצב סימולציה
+    if (window.SIMULATION_MODE) {
+        console.log("SIMULATION_MODE: Auto logout disabled");
+        return;
+    }
+    
     const timeoutSeconds = window.INACTIVITY_TIMEOUT || 270;
     let inactivityTimer;
 
@@ -64,10 +75,15 @@ window.handleButtonClick = async function(action, nextUrl, currentContext = null
     const fullAction = currentContext ? `${currentContext}/${action}` : action;
     console.log("Action:", fullAction);
 
-    await window.sendAction(fullAction);
+    // במצב סימולציה - מדלג על שליחת פקודה לבקר
+    if (!window.SIMULATION_MODE) {
+        await window.sendAction(fullAction);
+    } else {
+        console.log("SIMULATION_MODE: Skipping PLC action, navigating directly");
+    }
     
     if (nextUrl && nextUrl !== 'null') {
-        setTimeout(() => { window.location.href = nextUrl; }, 800);
+        setTimeout(() => { window.location.href = nextUrl; }, window.SIMULATION_MODE ? 100 : 800);
     }
 };
 

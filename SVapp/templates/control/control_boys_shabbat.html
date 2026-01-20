@@ -349,12 +349,14 @@
             })
             .then(data => {
                 // ה-API מחזיר ישירות {clocks: [...], time: "...", area: "..."}
+                console.log("Shabbat API response:", data);
                 if (!data || !data.clocks || !Array.isArray(data.clocks)) {
                     console.warn("No clocks data received or invalid format:", data);
                     return;
                 }
 
                 data.clocks.forEach((clock, index) => {
+                    console.log(`Clock ${index + 1}:`, clock);
                     const idx = index + 1;
                     
                     // עדכון נורית

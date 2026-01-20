@@ -34,7 +34,15 @@
 
 <script>
     // פונקציית חזרה ייעודית שמשתמשת בהקשר
+    // במצב סימולציה - מדלג על שליחת פקודה לבקר
     async function syncAndNavigateBack(targetUrl) {
+        // במצב סימולציה - מדלג על שליחת פקודה לבקר ועובר ישר לדף
+        if (window.SIMULATION_MODE) {
+            console.log("SIMULATION_MODE: Skipping PLC sync on back, navigating directly");
+            window.location.href = targetUrl;
+            return;
+        }
+        
         const currentCtx = document.getElementById('context-holder').innerText.trim();
         const backCmd = "BACK_" + currentCtx;
         await window.sendAction(backCmd);
@@ -50,6 +58,7 @@
         padding: 15px; 
         border-bottom: 3px solid #dee2e6;
         gap: 10px;
+        direction: rtl;
     }
     .tab-btn { 
         flex: 1;
