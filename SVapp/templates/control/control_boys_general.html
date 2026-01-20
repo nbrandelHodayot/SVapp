@@ -27,16 +27,26 @@
                 <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('BATHROOM_OFF', 'BOYS_GENERAL')">OFF</button>
             </div>
             <div class="indicators-grid">
-                {{ gen_indicator("בית 4", "T_B4") }}
-                {{ gen_indicator("בית 3", "T_B3") }}
-                {{ gen_indicator("בית 2", "T_B2") }}
-                {{ gen_indicator("בית 1", "T_B1") }}
-                {{ gen_indicator("בית 9", "T_B9") }}
-                <div class="empty-cell"></div>
-                <div class="empty-cell"></div>
-                {{ gen_indicator("בית 5", "T_B5") }}
-                <div class="full-width-label">{{ gen_indicator("בית 11 - א", "T_B11A") }}</div>
-                <div class="full-width-label">{{ gen_indicator("בית 11 - ב", "T_B11B") }}</div>
+                {# שורה 1: Y=310 - בתים 1-4 #}
+                <div class="y-row" data-y="310">
+                    {{ gen_indicator("בית 4", "T_B4") }}
+                    {{ gen_indicator("בית 3", "T_B3") }}
+                    {{ gen_indicator("בית 2", "T_B2") }}
+                    {{ gen_indicator("בית 1", "T_B1") }}
+                </div>
+                {# שורה 2: Y=390 - בתים 5, 9 #}
+                <div class="y-row" data-y="390">
+                    {{ gen_indicator("בית 5", "T_B5") }}
+                    {{ gen_indicator("בית 9", "T_B9") }}
+                </div>
+                {# שורה 3: Y=470 - בית 11א #}
+                <div class="y-row" data-y="470">
+                    {{ gen_indicator("בית 11 - א", "T_B11A") }}
+                </div>
+                {# שורה 4: Y=550 - בית 11ב #}
+                <div class="y-row" data-y="550">
+                    {{ gen_indicator("בית 11 - ב", "T_B11B") }}
+                </div>
             </div>
         </div>
 
@@ -47,16 +57,26 @@
                 <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('ROOMS_OFF', 'BOYS_GENERAL')">OFF</button>
             </div>
             <div class="indicators-grid">
-                {{ gen_indicator("בית 4", "R_B4") }}
-                {{ gen_indicator("בית 3", "R_B3") }}
-                {{ gen_indicator("בית 2", "R_B2") }}
-                {{ gen_indicator("בית 1", "R_B1") }}
-                {{ gen_indicator("בית 9", "R_B9") }}
-                <div class="empty-cell"></div>
-                <div class="empty-cell"></div>
-                {{ gen_indicator("בית 5", "R_B5") }}
-                <div class="full-width-label">{{ gen_indicator("בית 11 - א", "R_B11A") }}</div>
-                <div class="full-width-label">{{ gen_indicator("בית 11 - ב", "R_B11B") }}</div>
+                {# שורה 1: Y=314 - בתים 1-4 #}
+                <div class="y-row" data-y="314">
+                    {{ gen_indicator("בית 4", "R_B4") }}
+                    {{ gen_indicator("בית 3", "R_B3") }}
+                    {{ gen_indicator("בית 2", "R_B2") }}
+                    {{ gen_indicator("בית 1", "R_B1") }}
+                </div>
+                {# שורה 2: Y=394 - בתים 5, 9 #}
+                <div class="y-row" data-y="394">
+                    {{ gen_indicator("בית 5", "R_B5") }}
+                    {{ gen_indicator("בית 9", "R_B9") }}
+                </div>
+                {# שורה 3: Y=474 - בית 11א #}
+                <div class="y-row" data-y="474">
+                    {{ gen_indicator("בית 11 - א", "R_B11A") }}
+                </div>
+                {# שורה 4: Y=554 - בית 11ב #}
+                <div class="y-row" data-y="554">
+                    {{ gen_indicator("בית 11 - ב", "R_B11B") }}
+                </div>
             </div>
         </div>
 
@@ -67,22 +87,31 @@
                 <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('AC_OFF', 'BOYS_GENERAL')">OFF</button>
             </div>
             <div class="indicators-grid">
-                {{ gen_indicator("בית 4", "AC_B4") }}
-                {{ gen_indicator("בית 3", "AC_B3") }}
-                {{ gen_indicator("בית 2", "AC_B2") }}
-                {{ gen_indicator("בית 1", "AC_B1") }}
-                {{ gen_indicator("9-ב", "AC_B9B") }}
-                {{ gen_indicator("9-א", "AC_B9A") }}
-                <div class="empty-cell"></div>
-                {{ gen_indicator("בית 5", "AC_B5") }}
-                {{ gen_indicator("ב", "AC_B11AB") }}
-                {{ gen_indicator("א", "AC_B11AA") }}
-                <div class="empty-cell"></div>
-                <div class="row-label-cell">בית 11 קומה א'</div>
-                {{ gen_indicator("ב", "AC_B11BB") }}
-                {{ gen_indicator("א", "AC_B11BA") }}
-                <div class="empty-cell"></div>
-                <div class="row-label-cell">בית 11 קומה ב'</div>
+                {# שורה 1: Y=314 - בתים 1-4 #}
+                <div class="y-row" data-y="314">
+                    {{ gen_indicator("בית 4", "AC_B4") }}
+                    {{ gen_indicator("בית 3", "AC_B3") }}
+                    {{ gen_indicator("בית 2", "AC_B2") }}
+                    {{ gen_indicator("בית 1", "AC_B1") }}
+                </div>
+                {# שורה 2: Y=394 - בתים 5, 9 #}
+                <div class="y-row" data-y="394">
+                    {{ gen_indicator("בית 5", "AC_B5") }}
+                    {{ gen_indicator("9-א", "AC_B9A") }}
+                    {{ gen_indicator("9-ב", "AC_B9B") }}
+                </div>
+                {# שורה 3: Y=474 - בית 11א #}
+                <div class="y-row" data-y="474">
+                    <div class="row-label-cell">בית 11 קומה א'</div>
+                    {{ gen_indicator("א", "AC_B11AA") }}
+                    {{ gen_indicator("ב", "AC_B11AB") }}
+                </div>
+                {# שורה 4: Y=554 - בית 11ב #}
+                <div class="y-row" data-y="554">
+                    <div class="row-label-cell">בית 11 קומה ב'</div>
+                    {{ gen_indicator("א", "AC_B11BA") }}
+                    {{ gen_indicator("ב", "AC_B11BB") }}
+                </div>
             </div>
         </div>
     </div>
@@ -134,6 +163,19 @@
         gap: 20px; 
         justify-items: center; 
         align-items: start; 
+    }
+    
+    /* תצוגת מסך צר - מקסימום 2 קוביות בשורה */
+    @media (max-width: 1000px) {
+        .top-row, .bottom-row { 
+            grid-template-columns: repeat(2, 1fr); 
+        }
+    }
+    
+    @media (max-width: 750px) {
+        .top-row, .bottom-row { 
+            grid-template-columns: 1fr; 
+        }
     }
     
     .gen-box { 
@@ -211,10 +253,23 @@
     }
 
     .indicators-grid { 
-        display: grid; 
-        grid-template-columns: repeat(4, 1fr); 
-        gap: 15px 5px; 
-        justify-items: center; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 15px; 
+    }
+    
+    /* שורות עם אותו Y - מופרדות בבירור */
+    .y-row {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .y-row:last-child {
+        border-bottom: none;
     }
     
     .indicator-cell { 
@@ -292,14 +347,6 @@
         text-align: center; 
     }
 
-    @media (max-width: 1000px) {
-        .top-row, .bottom-row { 
-            grid-template-columns: 1fr; 
-        }
-        .gen-box { 
-            max-width: 450px; 
-        }
-    }
 </style>
 
 <script>

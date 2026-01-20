@@ -77,6 +77,9 @@ def context_to_filename(context_key):
         "C_G_S": ["control_girls_split1", "girls_split1"],  # ברירת מחדל ל-split1
         "PUBLIC_SPLIT": ["control_public_split", "public_split", "C_P_S"],
         "C_P_S": ["control_public_split", "public_split"],
+        # הפעלה כללית
+        "BOYS_GENERAL": ["control_boys_general", "boys_general", "02.2.1 control_boys_general"],
+        "GIRLS_GENERAL": ["control_girls_general", "girls_general", "02.2.2 control_girls_general"],
     }
     
     # חיפוש ישיר
@@ -488,7 +491,50 @@ def get_coords_dynamic(action):
                 logger.warning(f"Context '{context_name}' not found in CONTEXT_N")
                 return None
             
-            # טיפול בכפתורי ON/OFF בדפי חלוקה למבנים (C_B_S/C_G_S/C_P_S)
+            # מיפוי שמות להפעלה כללית (BOYS_GENERAL / GIRLS_GENERAL)
+            # השמות ב-HTML הם: BATHROOM_ON/OFF, ROOMS_ON/OFF, AC_ON/OFF, HEATER_ON/OFF
+            # אבל הפקודות ב-COMMANDS הן: HK_B_* / HK_G_*
+            action_mapping = {}
+            if context_name == "BOYS_GENERAL":
+                action_mapping = {
+                    "BATHROOM_ON": "HK_B_WC_ON",
+                    "BATHROOM_OFF": "HK_B_WC_OFF",
+                    "ROOMS_ON": "HK_B_R_ON",
+                    "ROOMS_OFF": "HK_B_R_OFF",
+                    "AC_ON": "HK_B_AC_ON",
+                    "AC_OFF": "HK_B_AC_OFF",
+                    "HEATER_ON": "HK_B_H_ON",
+                    "HEATER_OFF": "HK_B_H_OFF"
+                }
+            elif context_name == "GIRLS_GENERAL":
+                action_mapping = {
+                    "BATHROOM_ON": "HK_G_WC_ON",
+                    "BATHROOM_OFF": "HK_G_WC_OFF",
+                    "ROOMS_ON": "HK_G_R_ON",
+                    "ROOMS_OFF": "HK_G_R_OFF",
+                    "AC_ON": "HK_G_AC_ON",
+                    "AC_OFF": "HK_G_AC_OFF",
+                    "HEATER_ON": "HK_G_H_ON",
+                    "HEATER_OFF": "HK_G_H_OFF"
+                }
+            
+            # אם יש מיפוי, נשתמש בשם הממופה
+            mapped_action = action_mapping.get(sub_action, sub_action)
+            
+            # קודם כל - חיפוש ישיר בפקודות (COMMANDS) - זה הכי מהיר ואמין
+            tab_coords = getattr(config_app, 'TAB_COORDS', {})
+            commands = getattr(config_app, 'COMMANDS', {})
+            coords = tab_coords.get(mapped_action) or commands.get(mapped_action)
+            
+            if coords:
+                res = coords.copy()
+                # אם ה-N לא מוגדר בפקודה עצמה, ניקח את ה-N של הקונטקסט
+                if 'n' not in res:
+                    res['n'] = target_n
+                logger.info(f"Found command '{sub_action}' -> '{mapped_action}' in COMMANDS: {res}")
+                return res
+            
+            # אם לא נמצא ב-COMMANDS, ננסה לחשב מהנורות (רק לדפי חלוקה למבנים)
             if context_name in ["C_B_S", "C_G_S", "C_P_S"]:
                 # מזהים פעולות כמו AC_B1_ON, AC_B1_OFF או B7_AC_A_ON (בנות)
                 if sub_action.endswith("_ON") or sub_action.endswith("_OFF"):
@@ -533,7 +579,7 @@ def get_coords_dynamic(action):
                             button_x = led_x - (80 if is_on else 40)  # ON יותר שמאלה, OFF פחות שמאלה
                             button_y = led_y  # אותו Y כמו הנורה
                             
-                            logger.debug(f"Mapped {sub_action} to button at ({button_x}, {button_y}) from LED at ({led_x}, {led_y})")
+                            logger.info(f"Calculated button coordinates for {sub_action}: ({button_x}, {button_y}) from LED at ({led_x}, {led_y})")
                             
                             return {
                                 "x": button_x,
@@ -544,11 +590,6 @@ def get_coords_dynamic(action):
                             logger.warning(f"Device '{device_name}' not found in MONITOR_POINTS_CONTROL_SPLIT for context '{context_name}'")
                     else:
                         logger.warning(f"No monitor dict found for context '{context_name}'")
-            
-            # חיפוש הקואורדינטות בטאבים או בפקודות
-            tab_coords = getattr(config_app, 'TAB_COORDS', {})
-            commands = getattr(config_app, 'COMMANDS', {})
-            coords = tab_coords.get(sub_action) or commands.get(sub_action)
             
             if coords:
                 res = coords.copy()

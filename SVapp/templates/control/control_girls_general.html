@@ -33,34 +33,31 @@
             </div>
             
             <div class="indicators-container">
-                <div class="group-header">בתים 7, 8, 10</div>
-                <div class="indicator-row">
+                {# שורה 1: Y=303 - בתים 7, 8, 10 #}
+                <div class="indicator-row y-row" data-y="303">
                     {{ gen_indicator("7-א", "G7A_AC") }} 
                     {{ gen_indicator("7-ב", "G7B_AC") }} 
                     {{ gen_indicator("8", "G8_AC") }} 
-                    {{ gen_indicator("10-א", "G10A_AC") }} 
-                    {{ gen_indicator("10-ב", "G10B_AC") }}
+                    {{ gen_indicator("10-א", "G10A_AC") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">בית 12 (א, ב, ג)</div>
-                <div class="indicator-row">
-                    {{ gen_indicator("א", "G12A_AC") }} 
-                    {{ gen_indicator("ב", "G12B_AC") }} 
-                    {{ gen_indicator("ג", "G12C_AC") }}
+                {# שורה 2: Y=372 - בית 12 #}
+                <div class="indicator-row y-row" data-y="372">
+                    {{ gen_indicator("12א", "G12A_AC") }} 
+                    {{ gen_indicator("12ב", "G12B_AC") }} 
+                    {{ gen_indicator("10ב", "G10B_AC") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">בית 13 (א, ב, ג)</div>
-                <div class="indicator-row">
-                    {{ gen_indicator("א", "G13A_AC") }} 
-                    {{ gen_indicator("ב", "G13B_AC") }} 
-                    {{ gen_indicator("ג", "G13C_AC") }}
+                {# שורה 3: Y=439 - בית 13 #}
+                <div class="indicator-row y-row" data-y="439">
+                    {{ gen_indicator("13א", "G13A_AC") }} 
+                    {{ gen_indicator("13ב", "G13B_AC") }} 
+                    {{ gen_indicator("12ג", "G12C_AC") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">קרוואנים</div>
-                <div class="indicator-row caravan-grid">
+                {# שורה 4: Y=548 - קרוואנים + 13ג #}
+                <div class="indicator-row y-row caravan-row" data-y="548">
+                    {{ gen_indicator("13ג", "G13C_AC") }}
                     {% for i in range(20, 27) %}
                         {{ gen_indicator(i, "GC" ~ i ~ "_AC") }}
                     {% endfor %}
@@ -78,32 +75,29 @@
                 <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('ROOMS_OFF', 'GIRLS_GENERAL')">הכל OFF</button>
             </div>
             <div class="indicators-container">
-                <div class="group-header">בתים 7, 8, 10</div>
-                <div class="indicator-row">
+                {# שורה 1: Y=303 - בתים 7, 8, 10 #}
+                <div class="indicator-row y-row" data-y="303">
                     {{ gen_indicator("בית 7", "G7_R") }} 
                     {{ gen_indicator("בית 8", "G8_R") }} 
                     {{ gen_indicator("בית 10", "G10_R") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">בית 12 (א, ב, ג)</div>
-                <div class="indicator-row">
-                    {{ gen_indicator("א", "G12A_R") }} 
-                    {{ gen_indicator("ב", "G12B_R") }} 
-                    {{ gen_indicator("ג", "G12C_R") }}
+                {# שורה 2: Y=372 - בית 12 #}
+                <div class="indicator-row y-row" data-y="372">
+                    {{ gen_indicator("12א", "G12A_R") }} 
+                    {{ gen_indicator("12ב", "G12B_R") }} 
+                    {{ gen_indicator("12ג", "G12C_R") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">בית 13 (א, ב, ג)</div>
-                <div class="indicator-row">
-                    {{ gen_indicator("א", "G13A_R") }} 
-                    {{ gen_indicator("ב", "G13B_R") }} 
-                    {{ gen_indicator("ג", "G13C_R") }}
+                {# שורה 3: Y=439 - בית 13 #}
+                <div class="indicator-row y-row" data-y="439">
+                    {{ gen_indicator("13א", "G13A_R") }} 
+                    {{ gen_indicator("13ב", "G13B_R") }} 
+                    {{ gen_indicator("13ג", "G13C_R") }}
                 </div>
                 
-                <div class="row-separator"></div>
-                <div class="group-header">קרוואנים</div>
-                <div class="indicator-row caravan-grid">
+                {# שורה 4: Y=548 - קרוואנים #}
+                <div class="indicator-row y-row caravan-row" data-y="548">
                     {% for i in range(20, 27) %}
                         {{ gen_indicator(i, "GC" ~ i ~ "_R") }}
                     {% endfor %}
@@ -121,14 +115,23 @@
                     <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('BATHROOM_OFF', 'GIRLS_GENERAL')">OFF</button>
                 </div>
                 <div class="indicators-container">
-                    <div class="indicator-row">
+                    {# שורה 1: Y=303 - בתים 7, 8, 10 #}
+                    <div class="indicator-row y-row" data-y="303">
                         {{ gen_indicator("בית 7", "G7_T") }} 
                         {{ gen_indicator("בית 8", "G8_T") }} 
                         {{ gen_indicator("בית 10", "G10_T") }}
                     </div>
-                    <div class="indicator-row">
-                        {{ gen_indicator("בית 12", "G12_T") }} 
-                        {{ gen_indicator("בית 13", "G13_T") }}
+                    {# שורה 2: Y=372 - בית 12 #}
+                    <div class="indicator-row y-row" data-y="372">
+                        {{ gen_indicator("12א", "G12A_T") }} 
+                        {{ gen_indicator("12ב", "G12B_T") }} 
+                        {{ gen_indicator("12ג", "G12C_T") }}
+                    </div>
+                    {# שורה 3: Y=439 - בית 13 #}
+                    <div class="indicator-row y-row" data-y="439">
+                        {{ gen_indicator("13א", "G13A_T") }} 
+                        {{ gen_indicator("13ב", "G13B_T") }} 
+                        {{ gen_indicator("13ג", "G13C_T") }}
                     </div>
                 </div>
             </div>
@@ -160,6 +163,19 @@
         grid-template-columns: repeat(3, 1fr); 
         gap: 20px; 
         align-items: start;
+    }
+    
+    /* תצוגת מסך צר - מקסימום 2 קוביות בשורה */
+    @media (max-width: 1100px) {
+        .main-grid { 
+            grid-template-columns: repeat(2, 1fr); 
+        }
+    }
+    
+    @media (max-width: 750px) {
+        .main-grid { 
+            grid-template-columns: 1fr; 
+        }
     }
 
     .column-stack { display: flex; flex-direction: column; gap: 20px; }
@@ -197,16 +213,28 @@
     .btn-on { background: #2ecc71; color: white; }
     .btn-off { background: #e74c3c; color: white; }
 
-    .row-separator { border-top: 1px solid #222; margin: 12px 0; }
-    .group-header { color: #666; font-size: 0.8rem; margin-bottom: 10px; text-align: right; font-weight: bold; }
-
-    .indicators-container { display: flex; flex-direction: column; gap: 10px; }
-    .indicator-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .indicators-container { display: flex; flex-direction: column; gap: 15px; }
+    .indicator-row { 
+        display: flex; 
+        justify-content: center; 
+        gap: 12px; 
+        flex-wrap: wrap; 
+        align-items: center;
+    }
+    
+    /* שורות עם אותו Y - מופרדות בבירור */
+    .y-row {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .y-row:last-child {
+        border-bottom: none;
+    }
     
     /* סידור גריד לקרוואנים */
-    .caravan-grid { 
+    .caravan-row { 
         display: grid; 
-        grid-template-columns: repeat(4, 1fr); 
+        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); 
         gap: 10px; 
         justify-items: center; 
     }
@@ -216,22 +244,43 @@
 
     /* .status-indicator styles are now in style.css - unified LED system */
 
-    /* התאמה למסכים קטנים */
-    @media (max-width: 1100px) {
-        .main-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 750px) {
-        .main-grid { grid-template-columns: 1fr; }
-    }
 </style>
 
 <script>
     /**
-     * פונקציית רענון הסטטוס
-     * פונה ל-API המרכז של הפעלה כללית בנות
+     * פונקציה לעדכון מצב הנורות - נקראת אוטומטית מ-control_base
      */
     function refreshControlStatus() {
-        updateControlIndicators('/api/status/girls_general_full', 'stat_');
+        // שימוש ב-MONITOR_POINTS_CONTROL_GEN עם המפתח "girls"
+        fetch('/api/status/girls/general')
+            .then(res => {
+                if (!res.ok) {
+                    console.error(`API Error: ${res.status}`);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || data.error) {
+                    if (data && data.error) console.error("API Error:", data.error);
+                    return;
+                }
+                
+                for (const [key, val] of Object.entries(data)) {
+                    const el = document.getElementById('stat_' + key);
+                    if (el) {
+                        el.classList.remove('on', 'off', 'unknown');
+                        el.classList.add(String(val).toLowerCase());
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Status Update Failed:", err);
+                document.querySelectorAll('.status-indicator').forEach(el => {
+                    el.classList.remove('on', 'off');
+                    el.classList.add('unknown');
+                });
+            });
     }
 </script>
 {% endblock %}

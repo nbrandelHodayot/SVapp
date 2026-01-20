@@ -269,6 +269,32 @@ COMMANDS = {
     "T_B11B_OFF": {"x": 459, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
     
     # =========================================================================
+    # פקודות הפעלה בדף "בקרת אזורים - אזור בנים - הפעלה כללית" (BOYS_GENERAL)
+    # =========================================================================
+    # הערה: השמות ב-HTML הם BATHROOM_ON/OFF, ROOMS_ON/OFF, AC_ON/OFF, HEATER_ON/OFF
+    # אבל הקואורדינטות תלויות בקונטקסט - נטפל בזה ב-get_coords_dynamic
+    "HK_B_WC_ON": {"x": 941, "y": 80, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_WC_OFF": {"x": 200, "y": 220, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_R_ON": {"x": 480, "y": 220, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_R_OFF": {"x": 550, "y": 220, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_AC_ON": {"x": 820, "y": 220, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_AC_OFF": {"x": 890, "y": 220, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_H_ON": {"x": 480, "y": 660, "n": CONTEXT_N["BOYS_GENERAL"]},
+    "HK_B_H_OFF": {"x": 550, "y": 660, "n": CONTEXT_N["BOYS_GENERAL"]},
+    
+    # =========================================================================
+    # פקודות הפעלה בדף "בקרת אזורים - אזור בנות - הפעלה כללית" (GIRLS_GENERAL)
+    # =========================================================================
+    "HK_G_WC_ON": {"x": 130, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_WC_OFF": {"x": 200, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_R_ON": {"x": 480, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_R_OFF": {"x": 550, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_AC_ON": {"x": 820, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_AC_OFF": {"x": 890, "y": 220, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_H_ON": {"x": 480, "y": 660, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    "HK_G_H_OFF": {"x": 550, "y": 660, "n": CONTEXT_N["GIRLS_GENERAL"]},
+    
+    # =========================================================================
     # פקודות הפעלה בדף "בקרת אזורים - אזור בנות - חלוקה למבנים" (C_G_S)
     # GIRLS_SPLIT_1 (n=00100000000000000000): בתים 7, 8, 10, C23-C26
     # =========================================================================

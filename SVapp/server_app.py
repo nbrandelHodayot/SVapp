@@ -360,6 +360,28 @@ def get_girls_control_split2_status():
         logger.error(f"Error fetching girls control split2 status: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/status/girls/general')
+@login_required
+def get_girls_control_general_status():
+    """מחזיר סטטוס נורות ביקורת לדף בקרת בנות - הפעלה כללית"""
+    import monitor_config
+    from plc_core import get_multi_status
+    
+    # שימוש ב-MONITOR_POINTS_CONTROL_GEN עם המפתח "girls"
+    points_dict = monitor_config.MONITOR_POINTS_CONTROL_GEN.get("girls", {})
+    n_val = config.CONTEXT_N.get("GIRLS_GENERAL")
+    context_key = "GIRLS_GENERAL"
+    
+    if not n_val or not points_dict:
+        return jsonify({"error": "Configuration missing"}), 500
+    
+    try:
+        results = get_multi_status(points_dict, n_val, context_key)
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error fetching girls control general status: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/status/public/control_d1')
 @login_required
 def api_get_d1_status():
