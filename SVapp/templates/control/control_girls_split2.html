@@ -14,11 +14,10 @@
         {% for dev in devices %}
         <div class="device-row">
             <span class="device-name">{{ dev.label }}</span>
-            {# שימוש בקידומת C_G_S כפי שמוגדר בבקר #}
-            <div class="status-indicator unknown" id="stat_C_G_S_{{ dev.id }}"></div>
+            <div class="status-indicator unknown" id="stat_{{ dev.monitor_id }}"></div>
             <div class="button-pair">
-                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.id }}_OFF', 'C_G_S')">OFF</button>
-                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.id }}_ON', 'C_G_S')">ON</button>
+                <button type="button" class="btn-hmi btn-off" onclick="handleControlAction('{{ dev.action_off }}', 'C_G_S')">OFF</button>
+                <button type="button" class="btn-hmi btn-on" onclick="handleControlAction('{{ dev.action_on }}', 'C_G_S')">ON</button>
             </div>
         </div>
         {% endfor %}
@@ -37,55 +36,48 @@
 
     <div class="buildings-grid">
         
-        {# בית 11 - מבנה סטנדרטי #}
-        {{ building_card("בית 11", [
-            {"label": "מיזוג", "id": "B11_AC"},
-            {"label": "חדרים", "id": "B11_R"},
-            {"label": "שירותים", "id": "B11_T"}
-        ]) }}
-
         <div class="section-divider">מתחם מגורים 12</div>
 
         {# בית 12 - פירוט יחידות #}
         {{ building_card("בית 12 - יחידה א'", [
-            {"label": "מיזוג", "id": "B12A_AC"},
-            {"label": "חדרים", "id": "B12A_R"},
-            {"label": "שירותים", "id": "B12A_T"},
-            {"label": "דוד חימום", "id": "B12_HEAT"}
+            {"label": "מיזוג", "monitor_id": "AC_B12A", "action_on": "B12a_AC_ON", "action_off": "B12a_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B12A", "action_on": "B12a_R_ON", "action_off": "B12a_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B12A", "action_on": "B12a_WC_ON", "action_off": "B12a_WC_OFF"},
+            {"label": "דוד חימום", "monitor_id": "HEAT_B12", "action_on": "B12a_H_ON", "action_off": "B12a_H_OFF"}
         ]) }}
 
         {{ building_card("בית 12 - יחידה ב'", [
-            {"label": "מיזוג", "id": "B12B_AC"},
-            {"label": "חדרים", "id": "B12B_R"},
-            {"label": "שירותים", "id": "B12B_T"}
+            {"label": "מיזוג", "monitor_id": "AC_B12B", "action_on": "B12b_AC_ON", "action_off": "B12b_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B12B", "action_on": "B12b_R_ON", "action_off": "B12b_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B12B", "action_on": "B12b_WC_ON", "action_off": "B12b_WC_OFF"}
         ]) }}
 
         {{ building_card("בית 12 - יחידה ג'", [
-            {"label": "מיזוג", "id": "B12C_AC"},
-            {"label": "חדרים", "id": "B12C_R"},
-            {"label": "שירותים", "id": "B12C_T"}
+            {"label": "מיזוג", "monitor_id": "AC_B12C", "action_on": "B12c_AC_ON", "action_off": "B12c_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B12C", "action_on": "B12c_R_ON", "action_off": "B12c_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B12C", "action_on": "B12c_WC_ON", "action_off": "B12c_WC_OFF"}
         ]) }}
 
         <div class="section-divider">מתחם מגורים 13</div>
 
         {# בית 13 - פירוט יחידות #}
         {{ building_card("בית 13 - יחידה א'", [
-            {"label": "מיזוג", "id": "B13A_AC"},
-            {"label": "חדרים", "id": "B13A_R"},
-            {"label": "שירותים", "id": "B13A_T"},
-            {"label": "דוד חימום", "id": "B13_HEAT"}
+            {"label": "מיזוג", "monitor_id": "AC_B13A", "action_on": "B13a_AC_ON", "action_off": "B13a_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B13A", "action_on": "B13a_R_ON", "action_off": "B13a_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B13A", "action_on": "B13a_WC_ON", "action_off": "B13a_WC_OFF"},
+            {"label": "דוד חימום", "monitor_id": "HEAT_B13", "action_on": "B13a_H_ON", "action_off": "B13a_H_OFF"}
         ]) }}
 
         {{ building_card("בית 13 - יחידה ב'", [
-            {"label": "מיזוג", "id": "B13B_AC"},
-            {"label": "חדרים", "id": "B13B_R"},
-            {"label": "שירותים", "id": "B13B_T"}
+            {"label": "מיזוג", "monitor_id": "AC_B13B", "action_on": "B13b_AC_ON", "action_off": "B13b_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B13B", "action_on": "B13b_R_ON", "action_off": "B13b_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B13B", "action_on": "B13b_WC_ON", "action_off": "B13b_WC_OFF"}
         ]) }}
 
         {{ building_card("בית 13 - יחידה ג'", [
-            {"label": "מיזוג", "id": "B13C_AC"},
-            {"label": "חדרים", "id": "B13C_R"},
-            {"label": "שירותים", "id": "B13C_T"}
+            {"label": "מיזוג", "monitor_id": "AC_B13C", "action_on": "B13c_AC_ON", "action_off": "B13c_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "ROOM_B13C", "action_on": "B13c_R_ON", "action_off": "B13c_R_OFF"},
+            {"label": "שירותים", "monitor_id": "WC_B13C", "action_on": "B13c_WC_ON", "action_off": "B13c_WC_OFF"}
         ]) }}
 
     </div>
@@ -111,10 +103,10 @@
         font-weight: bold;
     }
     .nav-btn.active {
-        background: #ffcc00;
-        color: #000;
-        border-color: #ffcc00;
-        box-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
+        background: #d47fa8;
+        color: #fff;
+        border-color: #d47fa8;
+        box-shadow: 0 0 10px rgba(212, 127, 168, 0.4);
     }
 
     /* מפריד בין מתחמים */
@@ -152,28 +144,53 @@
         position: absolute;
         top: -14px;
         right: 20px;
-        background: #ffcc00;
-        color: #000;
-        padding: 2px 15px;
-        border-radius: 6px;
+        background: #d47fa8;
+        color: #fff;
+        padding: 6px 18px;
+        border-radius: 4px;
         font-weight: bold;
-        font-size: 0.85rem;
+        font-size: 1rem;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+        border: 1px solid #e69bc4;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-rows-container { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 12px; 
+        margin-top: 5px;
     }
 
     .device-row {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr auto auto;
         align-items: center;
-        background: #1a1a1a;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        border-radius: 8px;
+        gap: 12px;
+        background: #1e1e1e;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #333;
+        transition: background 0.2s;
     }
 
-    .device-name { flex: 1; text-align: right; color: #ddd; font-size: 0.85rem; }
+    .device-row:hover {
+        background: #252525;
+    }
+
+    .device-name { 
+        text-align: right; 
+        color: #e0e0e0; 
+        font-weight: 500; 
+        font-size: 0.95rem;
+    }
 
     .status-indicator {
-        margin: 0 15px;
-        /* Size, colors, and other styles from unified CSS (style.css) */
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        /* Styles inherited from unified CSS */
     }
 
     .button-pair { display: flex; gap: 8px; }
@@ -196,11 +213,51 @@
 
 <script>
     /**
-     * עדכון סטטוס מהבקר
-     * משתמש ב-API של בקרת הבנות
+     * פונקציה לעדכון מצב הנורות
+     * משתמשת בפונקציית העזר של control_base
      */
     function refreshControlStatus() {
-        updateControlIndicators('/api/status/girls_control', 'stat_C_G_S_');
+        // קריאה ל-API שמחזיר את מצב כל המבנים באזור הבנות (control split2)
+        fetch('/api/status/girls/control_split2')
+            .then(res => {
+                if (!res.ok) {
+                    console.error(`API Error: ${res.status} ${res.statusText}`);
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                
+                // אם יש שגיאה, נדווח
+                if (data.error) {
+                    console.error("API Error:", data.error);
+                    return;
+                }
+                
+                // עדכון כל הנורות לפי הנתונים
+                for (const [key, val] of Object.entries(data)) {
+                    const el = document.getElementById('stat_' + key);
+                    if (el) {
+                        // הסרת כל הקלאסים הקודמים
+                        el.classList.remove('on', 'off', 'unknown');
+                        // הוספת הקלאס החדש לפי המצב (ON/OFF/UNKNOWN)
+                        const state = String(val).toLowerCase();
+                        el.classList.add(state);
+                    } else {
+                        // דיבאג: אם נורה לא נמצאה
+                        console.warn(`LED indicator not found for: stat_${key}`);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Status Update Failed:", err);
+                // במקרה של שגיאה, נסמן את כל הנורות כ-unknown
+                document.querySelectorAll('.status-indicator').forEach(el => {
+                    el.classList.remove('on', 'off');
+                    el.classList.add('unknown');
+                });
+            });
     }
 </script>
 {% endblock %}

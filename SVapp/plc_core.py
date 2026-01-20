@@ -14,7 +14,7 @@ from monitor_config import (
     SHABBAT_TIME_Y_BASE, SHABBAT_STEP_Y, START_TIME_X, STOP_TIME_X,
     DIGIT_W, DIGIT_H, DIGIT_MAPS, PLC_GREEN, STATUS_POINT_X,
     SHABBAT_BUILDINGS_X, SHABBAT_DAYS_X, SHABBAT_CLOCK_LAYOUT,
-    SHABBAT_STATUS_POINTS_BOYS, SHABBAT_DIGIT_Y_BASE
+    SHABBAT_STATUS_POINTS_BOYS, SHABBAT_DIGIT_Y_BASE, TIME_BOXES
 )
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,14 @@ def context_to_filename(context_key):
         "GIRLS_SHABBAT_ROOM_LIGHTS": ["girls_shabbat_room"],
         "GIRLS_SHABBAT_BATHROOM_LIGHTS": ["girls_shabbat_bathroom"],
         "GIRLS_SHABBAT_HEATER": ["girls_shabbat_heater"],
+        # בקרת חלוקה למבנים
+        "BOYS_SPLIT": ["control_boys_split", "boys_split", "C_B_S"],
+        "GIRLS_SPLIT_1": ["control_girls_split1", "girls_split1", "C_G_S_1"],
+        "GIRLS_SPLIT_2": ["control_girls_split2", "girls_split2", "C_G_S_2"],
+        "C_B_S": ["control_boys_split", "boys_split"],
+        "C_G_S": ["control_girls_split1", "girls_split1"],  # ברירת מחדל ל-split1
+        "PUBLIC_SPLIT": ["control_public_split", "public_split", "C_P_S"],
+        "C_P_S": ["control_public_split", "public_split"],
     }
     
     # חיפוש ישיר
@@ -94,10 +102,24 @@ def find_simulation_images(base_names, sim_dir):
             pattern1 = os.path.join(sim_dir, f"{base}_*.{ext[2:]}")
             pattern2 = os.path.join(sim_dir, f"{base}*.{ext[2:]}")
             pattern3 = os.path.join(sim_dir, f"{base}.{ext[2:]}")
+            # חיפוש עם מספרים לפני השם (02.2.1.1 control_girls_split1.jfif)
+            pattern4 = os.path.join(sim_dir, f"*{base}_*.{ext[2:]}")
+            pattern5 = os.path.join(sim_dir, f"*{base}*.{ext[2:]}")
+            pattern6 = os.path.join(sim_dir, f"*{base}.{ext[2:]}")
+            # חיפוש עם רווחים (02.2.1.1 control_girls_split1.jfif)
+            pattern7 = os.path.join(sim_dir, f"* {base}_*.{ext[2:]}")
+            pattern8 = os.path.join(sim_dir, f"* {base}*.{ext[2:]}")
+            pattern9 = os.path.join(sim_dir, f"* {base}.{ext[2:]}")
             
             found.extend(glob.glob(pattern1))
             found.extend(glob.glob(pattern2))
             found.extend(glob.glob(pattern3))
+            found.extend(glob.glob(pattern4))
+            found.extend(glob.glob(pattern5))
+            found.extend(glob.glob(pattern6))
+            found.extend(glob.glob(pattern7))
+            found.extend(glob.glob(pattern8))
+            found.extend(glob.glob(pattern9))
     
     return list(set(found))  # הסרת כפילויות
 
@@ -112,8 +134,10 @@ def load_simulation_image(context_key=None, default_name="default", random_varia
     # קבלת רשימת שמות אפשריים
     if context_key:
         base_names = context_to_filename(context_key)
+        logger.info(f"SIMULATION_MODE: Looking for images with base names: {base_names} (context_key='{context_key}')")
     else:
         base_names = [default_name]
+        logger.info(f"SIMULATION_MODE: Looking for images with default name: {default_name}")
     
     # חיפוש תמונות
     images = find_simulation_images(base_names, str(sim_dir))
@@ -121,18 +145,21 @@ def load_simulation_image(context_key=None, default_name="default", random_varia
     if not images:
         # נסיון עם default
         if context_key:
+            logger.info(f"SIMULATION_MODE: No images found for {base_names}, trying default: {default_name}")
             images = find_simulation_images([default_name], str(sim_dir))
     
     if not images:
-        logger.warning(f"No simulation images found for context: {context_key}")
+        logger.warning(f"SIMULATION_MODE: No simulation images found for context: {context_key} (searched: {base_names})")
         return None
+    
+    logger.info(f"SIMULATION_MODE: Found {len(images)} image(s): {[os.path.basename(img) for img in images]}")
     
     # בחירת תמונה (אקראית או הראשונה)
     selected = random.choice(images) if random_variant and len(images) > 1 else images[0]
     
     try:
         img = Image.open(selected)
-        logger.debug(f"Loaded simulation image: {selected}")
+        logger.info(f"SIMULATION_MODE: Loaded image '{selected}' for context_key='{context_key}' (found {len(images)} images)")
         return img
     except Exception as e:
         logger.error(f"Failed to load simulation image {selected}: {e}")
@@ -235,17 +262,51 @@ def send_physical_click(x, y, n, debug_name="Unknown", silent=False):
 # 4. ניהול סטטוס וסריקת נורות
 # ==========================================
 
-def get_multi_status(points_dict, n_val):
+def get_multi_status(points_dict, n_val, context_key=None):
     """מעדכן את הבקר לדף מסוים וסורק רשימת נקודות"""
+    results = {name: "UNKNOWN" for name in points_dict.keys()}
+    
+    # מציאת context_key אם לא הועבר
+    if not context_key:
+        context_key = N_TO_PAGE_NAME.get(n_val)
+    
+    # מצב סימולציה
+    if getattr(config_app, 'SIMULATION_MODE', False):
+        logger.info(f"SIMULATION_MODE: Loading image for context_key={context_key}, n_val={n_val}")
+        img_data = fetch_plc_image(context_key)
+        if not img_data:
+            # אם אין תמונה, נחזיר ערכים אקראיים
+            logger.warning(f"SIMULATION_MODE: No image found for {context_key}, returning random values")
+            return {name: random.choice(["ON", "OFF"]) for name in points_dict.keys()}
+        
+        # סריקת התמונה
+        try:
+            img = Image.open(io.BytesIO(img_data)).convert('RGB')
+            logger.info(f"SIMULATION_MODE: Image loaded successfully, scanning {len(points_dict)} points")
+            for name, (x, y) in points_dict.items():
+                try:
+                    r, g, b = img.getpixel((x, y))
+                    results[name] = get_pixel_status(r, g, b)
+                    logger.info(f"  {name} at ({x}, {y}): RGB=({r}, {g}, {b}) -> {results[name]}")
+                except Exception as e:
+                    logger.warning(f"  Error reading pixel for {name} at ({x}, {y}): {e}")
+                    continue
+            logger.info(f"SIMULATION_MODE: Status scan complete. Results: {sum(1 for v in results.values() if v == 'ON')} ON, {sum(1 for v in results.values() if v == 'OFF')} OFF, {sum(1 for v in results.values() if v == 'UNKNOWN')} UNKNOWN")
+            return results
+        except Exception as e:
+            logger.error(f"SIMULATION_MODE: Error analyzing image: {e}")
+            return {name: random.choice(["ON", "OFF"]) for name in points_dict.keys()}
+    
+    # מצב אמת - עדכון הבקר לדף הנכון
     try:
         # פקודה שקטה כדי לוודא שהבקר בדף הנכון לפני הצילום
         session.get(f"http://{config_app.REMOTE_IP}/cgi-bin/remote_mouse.cgi?pos_x=1,pos_y=1&n={n_val}", timeout=2)
         time.sleep(0.8)
     except: pass
     
-    img_data = fetch_plc_image()
-    results = {name: "UNKNOWN" for name in points_dict.keys()}
-    if not img_data: return results
+    img_data = fetch_plc_image(context_key)
+    if not img_data: 
+        return results
 
     try:
         img = Image.open(io.BytesIO(img_data)).convert('RGB')
@@ -423,6 +484,67 @@ def get_coords_dynamic(action):
             context_name, sub_action = action.split("/", 1)
             target_n = config_app.CONTEXT_N.get(context_name)
             
+            if not target_n:
+                logger.warning(f"Context '{context_name}' not found in CONTEXT_N")
+                return None
+            
+            # טיפול בכפתורי ON/OFF בדפי חלוקה למבנים (C_B_S/C_G_S/C_P_S)
+            if context_name in ["C_B_S", "C_G_S", "C_P_S"]:
+                # מזהים פעולות כמו AC_B1_ON, AC_B1_OFF או B7_AC_A_ON (בנות)
+                if sub_action.endswith("_ON") or sub_action.endswith("_OFF"):
+                    device_name = sub_action.replace("_ON", "").replace("_OFF", "")
+                    is_on = sub_action.endswith("_ON")
+                    
+                    # חיפוש הקואורדינטות של הנורה ב-MONITOR_POINTS_CONTROL_SPLIT
+                    monitor_dict = None
+                    if context_name == "C_B_S":
+                        monitor_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {}).get("boys", {})
+                    elif context_name == "C_G_S":
+                        # בנות - צריך לבדוק גם girls1 וגם girls2
+                        split_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {})
+                        monitor_dict = {**split_dict.get("girls1", {}), **split_dict.get("girls2", {})}
+                    elif context_name == "C_P_S":
+                        monitor_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {}).get("public", {})
+                    
+                    # חיפוש גם בשמות שונים (למשל AC_B1 vs AC_B1)
+                    # בנות משתמשות בפורמט B7_AC_A במקום AC_B7
+                    if monitor_dict:
+                        # נסיון חיפוש ישיר
+                        led_coords = monitor_dict.get(device_name)
+                        
+                        # אם לא נמצא, ננסה להתאים (למשל B7_AC_A -> ACA_B7)
+                        if not led_coords and "_" in device_name:
+                            parts = device_name.split("_")
+                            # אם הפורמט הוא B7_AC_A, נהפוך ל-ACA_B7
+                            if len(parts) >= 3 and parts[1].startswith("AC"):
+                                if parts[1] == "AC" and len(parts) == 3:
+                                    # B7_AC_A -> ACA_B7
+                                    alternate_name = f"AC{parts[2]}_{parts[0]}"
+                                    led_coords = monitor_dict.get(alternate_name)
+                        
+                        if led_coords:
+                            # קואורדינטות הנורה
+                            led_x, led_y = led_coords
+                            
+                            # בדף חלוקה למבנים, הכפתורים ON/OFF נמצאים משמאל לנורה
+                            # ON משמאל, OFF מימין (או להפך - צריך לבדוק)
+                            # לפי התבנית: נורה ב-X=839, כפתורים כנראה ב-X ~740-790
+                            # נשתמש בהפרש קבוע של ~50 פיקסלים
+                            button_x = led_x - (80 if is_on else 40)  # ON יותר שמאלה, OFF פחות שמאלה
+                            button_y = led_y  # אותו Y כמו הנורה
+                            
+                            logger.debug(f"Mapped {sub_action} to button at ({button_x}, {button_y}) from LED at ({led_x}, {led_y})")
+                            
+                            return {
+                                "x": button_x,
+                                "y": button_y,
+                                "n": target_n
+                            }
+                        else:
+                            logger.warning(f"Device '{device_name}' not found in MONITOR_POINTS_CONTROL_SPLIT for context '{context_name}'")
+                    else:
+                        logger.warning(f"No monitor dict found for context '{context_name}'")
+            
             # חיפוש הקואורדינטות בטאבים או בפקודות
             tab_coords = getattr(config_app, 'TAB_COORDS', {})
             commands = getattr(config_app, 'COMMANDS', {})
@@ -543,7 +665,8 @@ def read_shabbat_clock_time(img, clock_index, type="ON"):
     if config_app.SIMULATION_MODE:
         return "08:00" if type == "ON" else "16:30"
 
-    base_y = SHABBAT_CLOCKS_BASE_Y[clock_index]
+    # חישוב base_y לפי ה-index של השעון
+    base_y = SHABBAT_TIME_Y_BASE + (clock_index * SHABBAT_STEP_Y)
     layout = SHABBAT_CLOCK_LAYOUT
     
     time_digits = []
