@@ -63,7 +63,7 @@
     .shabbat-wrapper { 
         direction: rtl; 
         padding: 15px; 
-        max-width: 900px; 
+        max-width: 100%; 
         margin: 0 auto; 
         background: #1a1a1a;
         min-height: 100vh;
@@ -133,15 +133,10 @@
     }
     
     .shabbat-timers-grid { 
-        display: grid; 
-        grid-template-columns: 1fr; 
+        display: flex; 
+        flex-direction: column; 
         gap: 20px; 
-    }
-    
-    @media (min-width: 768px) { 
-        .shabbat-timers-grid { 
-            grid-template-columns: 1fr 1fr; 
-        } 
+        width: 100%;
     }
     
     /* כרטיס שעון */
@@ -155,6 +150,7 @@
         gap: 15px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.8);
         transition: transform 0.2s, box-shadow 0.2s;
+        width: 100%;
     }
     
     .timer-card:hover {

@@ -480,7 +480,7 @@ def is_eli_physically_connected():
         logger.error(f"Error in physical connection check: {e}")
         return False
 
-def get_coords_dynamic(action):
+def get_coords_dynamic(action, context_name=None):
     """מפענח פעולה לקואורדינטות - כולל תמיכה בטאבים של שעוני שבת"""
     if not action: return None
 
@@ -686,7 +686,7 @@ def get_coords_dynamic(action):
 
 def send_physical_click_by_action(action_name, context_name=None, silent=False):
     """ביצוע לחיצה עם ניהול N חכם - גרסה חסינה"""
-    coords = get_coords_dynamic(action_name)
+    coords = get_coords_dynamic(action_name, context_name=context_name)
 
     if not coords or 'x' not in coords:
         logger.error(f"Action '{action_name}' unknown or coordinate missing.")
@@ -1133,11 +1133,14 @@ def get_digit_at(img, x_start, y_start):
                             
                             # פיקסלים אסטרטגיים - פיקסלים שמבדילים בין ספרות דומות
                             # שורות 2-5: מבדילים בין 6 ל-0 (6: רק [1,2] כהה, 0: [0,1,8,9] כהה)
+                            # שורות 4-5: מבדילים בין 6 ל-0 (6: [1,2] כהה, 0: [0,1,8,9] כהה - כולל 0,8,9)
                             # שורה 4: מבדיל בין 8 ל-3 (8: [2,3,7,8] כהה, 3: [7,8] כהה)
                             # שורה 5: מבדיל בין 8 ל-3 (8: [3,4,5,6] כהה, 3: [4,5,6,7] כהה)
                             # שורות 7-11: מבדילים בין 9 ל-0 ול-6 (9: רק [7,8,9] כהה, 0: [0,1,8,9] כהה, 6: [1,2,7,8] כהה)
+                            # שורות 4-5: מבדילים בין 9 ל-0 (9: [1,2,8,9] כהה, 0: [0,1,8,9] כהה - כולל 0)
                             is_strategic = (
                                 (row_idx in [2,3,4,5] and c in [8,9]) or  # מבדיל 6 מ-0 (6: בהיר, 0: כהה)
+                                (row_idx in [4,5] and c == 0) or  # מבדיל 6 מ-0 (6: בהיר, 0: כהה) + מבדיל 9 מ-0 (9: כהה, 0: כהה - אבל 9 לא כולל 0)
                                 (row_idx == 4 and c in [2,3]) or  # מבדיל 8 מ-3 (8: כהה, 3: בהיר)
                                 (row_idx == 5 and c == 3) or  # מבדיל 8 מ-3 (8: כהה, 3: בהיר)
                                 (row_idx in [7,8,9,10,11] and c in [0,1]) or  # מבדיל 9 מ-0 (9: בהיר, 0: כהה)
@@ -1178,6 +1181,10 @@ def get_digit_at(img, x_start, y_start):
                 if failure_rate > 0.4:  # יותר מ-40% כשלים
                     normalized_score -= 0.5
                 
+                # בונוס קטן לספרות 6 ו-9 אם הציון טוב (עוזר להבדיל מ-0)
+                if digit in ['6', '9'] and normalized_score > 0.5:
+                    normalized_score += 0.03
+                
                 if normalized_score > max_score:
                     max_score = normalized_score
                     best_digit = digit
@@ -1187,6 +1194,51 @@ def get_digit_at(img, x_start, y_start):
     
     # דורש ציון מינימלי של 0.3 (30% התאמה)
     if max_score > 0.3:
+        # בדיקה נוספת להבדלה בין 6, 9 ו-0
+        # אם best_digit הוא 0 אבל יש התאמה טובה גם ל-6 או 9, נבדוק פיקסלים ספציפיים
+        if best_digit == "0":
+            # בדיקת פיקסלים שמבדילים בין 0 ל-6 (שורות 2-5, עמודות 8,9 - ב-6 הם בהירים, ב-0 כההים)
+            six_score = 0
+            nine_score = 0
+            for row_idx in [2, 3, 4, 5]:
+                for c in [8, 9]:
+                    x = x_start + c
+                    y = y_start + row_idx
+                    if 0 <= x < img.width and 0 <= y < img.height:
+                        p = img.getpixel((x, y))
+                        pixel_sum = sum(p)
+                        # ב-6: פיקסלים אלה בהירים (sum > 600)
+                        # ב-0: פיקסלים אלה כההים (sum < 200)
+                        if pixel_sum > 600:
+                            six_score += 1
+                        elif pixel_sum < 200:
+                            # זה תומך ב-0
+                            pass
+            
+            # בדיקת פיקסלים שמבדילים בין 0 ל-9 (שורות 7-11, עמודות 0,1 - ב-9 הם בהירים, ב-0 כההים)
+            for row_idx in [7, 8, 9, 10, 11]:
+                for c in [0, 1]:
+                    x = x_start + c
+                    y = y_start + row_idx
+                    if 0 <= x < img.width and 0 <= y < img.height:
+                        p = img.getpixel((x, y))
+                        pixel_sum = sum(p)
+                        # ב-9: פיקסלים אלה בהירים (sum > 600)
+                        # ב-0: פיקסלים אלה כההים (sum < 200)
+                        if pixel_sum > 600:
+                            nine_score += 1
+                        elif pixel_sum < 200:
+                            # זה תומך ב-0
+                            pass
+            
+            # אם יש מספיק פיקסלים שמצביעים על 6 או 9, נשנה את התוצאה
+            if six_score >= 3:  # לפחות 3 מתוך 8 פיקסלים מצביעים על 6
+                logger.debug(f"Digit at ({x_start}, {y_start}): Changed from 0 to 6 based on strategic pixels (score: {six_score})")
+                return "6"
+            elif nine_score >= 3:  # לפחות 3 מתוך 10 פיקסלים מצביעים על 9
+                logger.debug(f"Digit at ({x_start}, {y_start}): Changed from 0 to 9 based on strategic pixels (score: {nine_score})")
+                return "9"
+        
         return best_digit
     else:
         # אם כל הפיקסלים האסטרטגיים נכשלו, החזר "?"

@@ -193,8 +193,19 @@ def control():
 
     # 3. ביצוע הפקודה
     try:
-        # שליחה ל-plc_core עם ה-context הנוכחי
-        res, code = plc_core.send_physical_click_by_action(raw_action, context_param)
+        # פירוק action אם הוא בפורמט CONTEXT/ACTION
+        action_name = raw_action
+        context_name = context_param
+        
+        if '/' in raw_action:
+            parts = raw_action.split('/', 1)
+            if len(parts) == 2:
+                context_name = parts[0]  # CONTEXT
+                action_name = parts[1]  # ACTION
+                logger.info(f"Parsed action: context={context_name}, action={action_name}")
+        
+        # שליחה ל-plc_core עם ה-context והפעולה המפורקים
+        res, code = plc_core.send_physical_click_by_action(action_name, context_name)
         return jsonify(res), code
 
     except Exception as e:
