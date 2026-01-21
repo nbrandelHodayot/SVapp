@@ -652,19 +652,34 @@ def get_coords_dynamic(action):
         timer_num = action.replace("TIMER_", "").replace("_TOGGLE", "")
         timer_key = f"timer_{timer_num}"
         
-        # קבלת הקואורדינטות מ-SHABBAT_STATUS_POINTS_BOYS
-        if hasattr(monitor_config, 'SHABBAT_STATUS_POINTS_BOYS'):
+        # קביעת area לפי context_name
+        area = "boys"  # ברירת מחדל
+        if context_name:
+            context_upper = context_name.upper()
+            if "GIRLS" in context_upper or "G_" in context_upper:
+                area = "girls"
+            elif "PUBLIC" in context_upper or "P_" in context_upper:
+                area = "public"
+        
+        # קבלת הקואורדינטות לפי area - אותן קואורדינטות לזיהוי ולחיצה
+        status_points = None
+        if area == "girls" and hasattr(monitor_config, 'SHABBAT_STATUS_POINTS_GIRLS'):
+            status_points = monitor_config.SHABBAT_STATUS_POINTS_GIRLS
+        elif area == "public" and hasattr(monitor_config, 'SHABBAT_STATUS_POINTS_PUBLIC'):
+            status_points = monitor_config.SHABBAT_STATUS_POINTS_PUBLIC
+        elif hasattr(monitor_config, 'SHABBAT_STATUS_POINTS_BOYS'):
             status_points = monitor_config.SHABBAT_STATUS_POINTS_BOYS
-            if timer_key in status_points:
-                x, y = status_points[timer_key]
-                # הקונטקסט יהיה לפי ה-context_name שמועבר, או נלקח מהקונטקסט הנוכחי
-                # בדרך כלל זה יהיה BOYS_SHABBAT_AC1, BOYS_SHABBAT_AC2, וכו'
-                return {
-                    "x": x,
-                    "y": y,
-                    # ה-N יקבע לפי ה-context_name שמועבר לפונקציה
-                    "n": None  # יקבע לפי context_name
-                }
+        
+        if status_points and timer_key in status_points:
+            x, y = status_points[timer_key]
+            # הקונטקסט יהיה לפי ה-context_name שמועבר, או נלקח מהקונטקסט הנוכחי
+            # בדרך כלל זה יהיה BOYS_SHABBAT_AC1, BOYS_SHABBAT_AC2, וכו'
+            return {
+                "x": x,
+                "y": y,
+                # ה-N יקבע לפי ה-context_name שמועבר לפונקציה
+                "n": None  # יקבע לפי context_name
+            }
 
     return None
     
@@ -1101,41 +1116,58 @@ def get_digit_at(img, x_start, y_start):
             for row_idx, cols in pattern:
                 # row_idx הוא 0-14 (15 שורות)
                 if 0 <= row_idx < digit_h:  # 0-14
-                    for c in cols:
-                        # c הוא 0-9 (10 עמודות)
-                        if 0 <= c < digit_w:
-                            x = x_start + c
-                            y = y_start + row_idx
+                    # בדיקת כל הפיקסלים בשורה (0-9) - גם אלה שלא ברשימה
+                    for c in range(digit_w):  # 0-9
+                        x = x_start + c
+                        y = y_start + row_idx
+                        
+                        # בדיקת גבולות
+                        if 0 <= x < img.width and 0 <= y < img.height:
+                            p = img.getpixel((x, y))
+                            pixel_sum = sum(p)
                             
-                            # בדיקת גבולות
-                            if 0 <= x < img.width and 0 <= y < img.height:
-                                p = img.getpixel((x, y))
-                                pixel_sum = sum(p)
-                                
-                                # Threshold: פיקסל בהיר = sum > 600 (להתחשב בשונות RGB)
-                                # פיקסל כהה = sum < 200
-                                # בתבנית: אם c ב-cols, הפיקסל אמור להיות כהה (0)
-                                # אם c לא ב-cols, הפיקסל אמור להיות בהיר (255)
-                                if c in cols:
-                                    # פיקסל אמור להיות כהה
-                                    if pixel_sum < 200:
-                                        score += 1  # התאמה טובה
-                                    else:
-                                        failed_checks += 1
-                                        score -= 0.5
+                            # Threshold: פיקסל בהיר = sum > 600 (להתחשב בשונות RGB)
+                            # פיקסל כהה = sum < 200
+                            # בתבנית: אם c ב-cols, הפיקסל אמור להיות כהה (0)
+                            # אם c לא ב-cols, הפיקסל אמור להיות בהיר (255)
+                            
+                            # פיקסלים אסטרטגיים - פיקסלים שמבדילים בין ספרות דומות
+                            # שורות 2-5: מבדילים בין 6 ל-0 (6: רק [1,2] כהה, 0: [0,1,8,9] כהה)
+                            # שורה 4: מבדיל בין 8 ל-3 (8: [2,3,7,8] כהה, 3: [7,8] כהה)
+                            # שורה 5: מבדיל בין 8 ל-3 (8: [3,4,5,6] כהה, 3: [4,5,6,7] כהה)
+                            # שורות 7-11: מבדילים בין 9 ל-0 ול-6 (9: רק [7,8,9] כהה, 0: [0,1,8,9] כהה, 6: [1,2,7,8] כהה)
+                            is_strategic = (
+                                (row_idx in [2,3,4,5] and c in [8,9]) or  # מבדיל 6 מ-0 (6: בהיר, 0: כהה)
+                                (row_idx == 4 and c in [2,3]) or  # מבדיל 8 מ-3 (8: כהה, 3: בהיר)
+                                (row_idx == 5 and c == 3) or  # מבדיל 8 מ-3 (8: כהה, 3: בהיר)
+                                (row_idx in [7,8,9,10,11] and c in [0,1]) or  # מבדיל 9 מ-0 (9: בהיר, 0: כהה)
+                                (row_idx in [7,8,9,10,11] and c in [1,2])  # מבדיל 9 מ-6 (9: בהיר, 6: כהה)
+                            )
+                            
+                            if c in cols:
+                                # פיקסל אמור להיות כהה
+                                if pixel_sum < 200:
+                                    # פיקסל אסטרטגי מקבל משקל גבוה יותר
+                                    score += 2.0 if is_strategic else 1.0
                                 else:
-                                    # פיקסל אמור להיות בהיר
-                                    if pixel_sum > 600:
-                                        score += 1  # התאמה טובה
-                                    else:
-                                        failed_checks += 1
-                                        score -= 0.3
-                                
-                                total_checks += 1
+                                    failed_checks += 1
+                                    # פיקסל אסטרטגי שנכשל מקבל עונש גבוה יותר
+                                    score -= 1.0 if is_strategic else 0.5
                             else:
-                                # מחוץ לגבולות - נחשב ככשל
-                                failed_checks += 1
-                                score -= 0.3
+                                # פיקסל אמור להיות בהיר
+                                if pixel_sum > 600:
+                                    # פיקסל אסטרטגי מקבל משקל גבוה יותר
+                                    score += 2.0 if is_strategic else 1.0
+                                else:
+                                    failed_checks += 1
+                                    # פיקסל אסטרטגי שנכשל מקבל עונש גבוה יותר
+                                    score -= 1.0 if is_strategic else 0.3
+                            
+                            total_checks += 1
+                        else:
+                            # מחוץ לגבולות - נחשב ככשל
+                            failed_checks += 1
+                            score -= 0.3
             
             # חישוב ציון סופי (נרמול לפי מספר הבדיקות)
             if total_checks > 0:
@@ -1216,19 +1248,43 @@ def parse_shabbat_clocks(image, area='boys', context_key=None):
         status_x, status_y_base = status_coords
         
         # חישוב offset Y ביחס לשעון הראשון (276 לספרות)
-        # שימוש ב-SHABBAT_DIGIT_Y_OFFSETS לחישוב מדויק יותר
+        # שימוש ב-offsets לפי context_key (אם קיים) או ברירת מחדל
         timer_number = i + 1
-        if timer_number in monitor_config.SHABBAT_DIGIT_Y_OFFSETS:
-            current_offset = monitor_config.SHABBAT_DIGIT_Y_OFFSETS[timer_number]
-        else:
-            # Fallback: חישוב לפי Y של כפתור (266) - לא מדויק אבל יעבוד
-            try:
-                current_offset = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
-                # תיקון: הוספת ההפרש בין Y של כפתור ל-Y של ספרות (276-266=10)
-                current_offset += 10
-            except Exception as e:
-                logger.error(f"Timer {i+1} error calculating offset: {e}")
-                continue
+        current_offset = None
+        
+        # ניסיון להשתמש ב-offsets לפי context_key (אזור בנים)
+        if context_key and area.lower() == 'boys':
+            offsets_by_tab = getattr(monitor_config, 'SHABBAT_DIGIT_Y_OFFSETS_BY_TAB_BOYS', {})
+            if context_key in offsets_by_tab:
+                tab_offsets = offsets_by_tab[context_key]
+                if timer_number in tab_offsets:
+                    current_offset = tab_offsets[timer_number]
+                    logger.debug(f"Timer {timer_number} using tab-specific offset (boys): {current_offset} for context {context_key}")
+        
+        # ניסיון להשתמש ב-offsets לפי context_key (אזור בנות)
+        if current_offset is None and context_key and area.lower() == 'girls':
+            offsets_by_tab = getattr(monitor_config, 'SHABBAT_DIGIT_Y_OFFSETS_BY_TAB_GIRLS', {})
+            if context_key in offsets_by_tab:
+                tab_offsets = offsets_by_tab[context_key]
+                if timer_number in tab_offsets:
+                    current_offset = tab_offsets[timer_number]
+                    logger.debug(f"Timer {timer_number} using tab-specific offset (girls): {current_offset} for context {context_key}")
+        
+        # Fallback: שימוש ב-SHABBAT_DIGIT_Y_OFFSETS (ברירת מחדל)
+        if current_offset is None:
+            if timer_number in monitor_config.SHABBAT_DIGIT_Y_OFFSETS:
+                current_offset = monitor_config.SHABBAT_DIGIT_Y_OFFSETS[timer_number]
+                logger.debug(f"Timer {timer_number} using default offset: {current_offset}")
+            else:
+                # Fallback: חישוב לפי Y של כפתור (266) - לא מדויק אבל יעבוד
+                try:
+                    current_offset = status_y_base - monitor_config.SHABBAT_TIME_Y_BASE
+                    # תיקון: הוספת ההפרש בין Y של כפתור ל-Y של ספרות (276-266=10)
+                    current_offset += 10
+                    logger.debug(f"Timer {timer_number} using calculated offset: {current_offset}")
+                except Exception as e:
+                    logger.error(f"Timer {i+1} error calculating offset: {e}")
+                    continue
         
         # וידוא ש-current_offset הוא int
         if not isinstance(current_offset, (int, float)):
@@ -1344,8 +1400,33 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
         raise TypeError(f"offset_y must be int/float, got {type(offset_y)}")
     
     # Y של שורת הספרות לשעון זה - חישוב לפי offset
-    # offset_y הוא ההפרש בין Y של השעון הנוכחי ל-Y של שעון 1 (276)
-    digit_y = monitor_config.SHABBAT_DIGIT_Y_BASE + offset_y
+    # קביעת Y base לפי context_key (אם בנות) או ברירת מחדל
+    digit_y_base = monitor_config.SHABBAT_DIGIT_Y_BASE  # ברירת מחדל: 276
+    if context_key and area.lower() == 'girls':
+        y_base_by_tab = getattr(monitor_config, 'SHABBAT_DIGIT_Y_BASE_BY_TAB_GIRLS', {})
+        if context_key in y_base_by_tab:
+            digit_y_base = y_base_by_tab[context_key]
+            logger.debug(f"Using tab-specific Y base: {digit_y_base} for context {context_key}")
+    
+    digit_y = digit_y_base + offset_y
+    
+    # קביעת X של START ו-STOP לפי context_key (אם בנות) או ברירת מחדל
+    start_x_base = monitor_config.START_TIME_X[0]  # ברירת מחדל: 364
+    stop_x_base = monitor_config.STOP_TIME_X[0]     # ברירת מחדל: 234
+    if context_key and area.lower() == 'girls':
+        start_x_by_tab = getattr(monitor_config, 'SHABBAT_START_TIME_X_BY_TAB_GIRLS', {})
+        stop_x_by_tab = getattr(monitor_config, 'SHABBAT_STOP_TIME_X_BY_TAB_GIRLS', {})
+        if context_key in start_x_by_tab:
+            start_x_base = start_x_by_tab[context_key]
+            logger.debug(f"Using tab-specific START X: {start_x_base} for context {context_key}")
+        if context_key in stop_x_by_tab:
+            stop_x_base = stop_x_by_tab[context_key]
+            logger.debug(f"Using tab-specific STOP X: {stop_x_base} for context {context_key}")
+    
+    # חישוב X של כל הספרות (4 ספרות, כל אחת 10 פיקסלים, מרחק 2 פיקסלים)
+    # ספרה 1: x_base, ספרה 2: x_base + 12, ספרה 3: x_base + 24, ספרה 4: x_base + 36
+    start_time_x_list = [start_x_base, start_x_base + 12, start_x_base + 24, start_x_base + 36]
+    stop_time_x_list = [stop_x_base, stop_x_base + 12, stop_x_base + 24, stop_x_base + 36]
     
     # 1. פענוח זמנים (OCR) - 4 ספרות משמאל לימין
     def get_time_string(x_list, y_base):
@@ -1385,8 +1466,8 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
         else:
             return "--:--"
 
-    start_time = get_time_string(monitor_config.START_TIME_X, digit_y)
-    stop_time = get_time_string(monitor_config.STOP_TIME_X, digit_y)
+    start_time = get_time_string(start_time_x_list, digit_y)
+    stop_time = get_time_string(stop_time_x_list, digit_y)
 
     # 2. בדיקת ימים פעילים - בדיקה לפי טווחי פיקסלים
     active_days = []
@@ -1528,11 +1609,32 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
     button_status = check_shabbat_button_status(img, offset_y)
     is_on = (button_status == "ON")
 
+    # מיון המבנים לפי מספר ואות (1 לפני 3, 12א לפני 12ב)
+    def sort_building_key(bld):
+        """מיון מבנים: קודם מספר, אחר כך אות"""
+        # הפרדת מספר ואות (אם יש)
+        import re
+        match = re.match(r'(\d+)([א-ת]*)', str(bld))
+        if match:
+            num = int(match.group(1))
+            letter = match.group(2) or ''
+            # המרת אות עברית למספר למיון (א=1, ב=2, וכו')
+            letter_num = 0
+            if letter:
+                hebrew_letters = 'אבגדהוזחטיכסעפצקרשת'
+                if letter in hebrew_letters:
+                    letter_num = hebrew_letters.index(letter) + 1
+            return (num, letter_num)
+        # אם לא התאים לתבנית, נחזיר את המחרוזת המקורית
+        return (999, str(bld))
+    
+    sorted_buildings = sorted(set(active_buildings), key=sort_building_key)
+    
     return {
         "start": start_time,
         "stop": stop_time,
         "days": active_days,
-        "buildings": list(set(active_buildings)), # הסרת כפילויות
+        "buildings": sorted_buildings,  # מיון לפי מספר ואות
         "is_on": is_on,
         "button_status": button_status
     }
