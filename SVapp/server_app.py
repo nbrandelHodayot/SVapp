@@ -467,13 +467,25 @@ def set_plc_page():
     tab_param = request.args.get('current_tab', 'AC1').upper()
     area = request.args.get('area', 'boys').lower()
     
+    # מיפוי בין tab_id (מה-HTML) לשם המלא ב-TAB_COORDS
+    tab_id_to_name = {
+        'AC1': 'AC1',
+        'AC2': 'AC2',
+        'ROOMS': 'ROOM_LIGHTS',  # ROOMS -> ROOM_LIGHTS
+        'WC': 'BATHROOM_LIGHTS',  # WC -> BATHROOM_LIGHTS
+        'HEATER': 'HEATER'
+    }
+    
+    # המרת tab_id לשם המלא
+    full_tab_name = tab_id_to_name.get(action_key.upper(), action_key.upper())
+    
     # בניית שם הטאב המלא (למשל BOYS_SHABBAT_AC1)
     if area == 'boys':
-        tab_name = f"BOYS_SHABBAT_{action_key.upper()}"
+        tab_name = f"BOYS_SHABBAT_{full_tab_name}"
     elif area == 'girls':
-        tab_name = f"GIRLS_SHABBAT_{action_key.upper()}"
+        tab_name = f"GIRLS_SHABBAT_{full_tab_name}"
     else:
-        tab_name = f"{area.upper()}_SHABBAT_{action_key.upper()}"
+        tab_name = f"{area.upper()}_SHABBAT_{full_tab_name}"
     
     # קבלת הקואורדינטות של הטאב
     coords = config.TAB_COORDS.get(tab_name)
@@ -483,7 +495,9 @@ def set_plc_page():
         return jsonify({"success": False, "error": f"Tab {action_key} not found"}), 400
     
     # קבלת ה-N של הדף הנוכחי (למשל BOYS_SHABBAT_AC1)
-    current_context_key = f"{area.upper()}_SHABBAT_{tab_param}"
+    # המרת tab_param לשם המלא
+    full_current_tab = tab_id_to_name.get(tab_param, tab_param)
+    current_context_key = f"{area.upper()}_SHABBAT_{full_current_tab}"
     current_n = config.CONTEXT_N.get(current_context_key)
     
     if not current_n:
