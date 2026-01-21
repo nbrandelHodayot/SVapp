@@ -1,8 +1,10 @@
 {% extends "control/control_base.html" %}
-{% block active_ctx %}{{ active_ctx }}{% endblock %}
+{% import "macros/shabbat_macros.html" as shabbat_macros %}
 
-{# קביעת הלשונית הנבחרת והגדרת שמות לתצוגה #}
+{# 1. קביעת משתנים בסיסיים קודם כל #}
 {% set current_tab = request.args.get('tab', 'AC1') %}
+
+{# 2. הגדרת המיפויים - חייב להופיע לפני השימוש ב-active_ctx #}
 {% set tab_names = {
     'AC1': 'מיזוג 1/2',
     'AC2': 'מיזוג 2/2',
@@ -11,7 +13,6 @@
     'HEATER': 'חימום מים'
 } %}
 
-{# מיפוי ההקשרים לבקר לפי הקוד המקורי שלך #}
 {% set context_map = {
     'AC1': 'GIRLS_SHABBAT_AC1',
     'AC2': 'GIRLS_SHABBAT_AC2',
@@ -19,172 +20,318 @@
     'WC': 'GIRLS_SHABBAT_BATHROOM_LIGHTS',
     'HEATER': 'GIRLS_SHABBAT_HEATER'
 } %}
+
+{# 3. עכשיו אפשר להגדיר את ה-active_ctx בבטחה #}
 {% set active_ctx = context_map.get(current_tab, 'GIRLS_SHABBAT_AC1') %}
 
-{% block title %}שעוני שבת בנות - {{ tab_names[current_tab] }}{% endblock %}
-{% block page_name %}שעוני שבת בנות - {{ tab_names[current_tab] }}{% endblock %}
+{# 4. העברת הנתונים לבלוקים של ה-Base #}
+{% block active_ctx %}{{ active_ctx }}{% endblock %}
+{% block title %}שעוני שבת בנות - {{ tab_names.get(current_tab, 'מיזוג') }}{% endblock %}
+{% block page_name %}שעוני שבת בנות - {{ tab_names.get(current_tab, 'מיזוג') }}{% endblock %}
 
-{# חזרה לתפריט הבקרה הראשי #}
 {% block back_url %}/nav_control.html{% endblock %}
 {% block back_action %}BACK_{{ active_ctx }}{% endblock %}
 
 {% block control_content %}
 <div class="shabbat-wrapper">
     
-    {# תפריט לשוניות עליון (Tabs) #}
+    {# תפריט לשוניות עליון #}
     <div class="shabbat-tabs-nav">
         {% for tab_id, tab_label in tab_names.items() %}
-            <a href="?tab={{ tab_id }}" class="shabbat-tab-link {{ 'active' if current_tab == tab_id }}">
-                {{ tab_label }}
-            </a>
+        <button type="button" 
+            onclick="switchPlcTab('{{ tab_id }}', '{{ context_map[tab_id] }}', '?tab={{ tab_id }}')" 
+            class="shabbat-tab-link {{ 'active' if current_tab == tab_id }}">
+            {{ tab_label }}
+        </button>
         {% endfor %}
     </div>
 
-    <div class="shabbat-header-info">
-        <p>ניהול זמני פעילות מתוזמנים - אזור בנות</p>
+    <div class="shabbat-status-header">
+        <p>ניטור ושליטה בזמני שעוני שבת - {{ tab_names.get(current_tab, '') }}</p>
     </div>
 
-    {# גריד שעוני השבת א-ד #}
+    {# גריד שעוני השבת #}
     <div class="shabbat-timers-grid">
         {% for i in range(1, 5) %}
-        {% set timer_id = "TIMER_" ~ i %}
-        {% set label = ['א', 'ב', 'ג', 'ד'][i-1] %}
-        
-        <div class="timer-card">
-            <div class="timer-main-info">
-                <span class="timer-label">זמן {{ label }}</span>
-                {# נורית סטטוס שתתעדכן מהבקר #}
-                <div class="status-indicator unknown" id="stat_{{ timer_id }}"></div>
-            </div>
-            
-            <div class="timer-actions">
-                <button type="button" 
-                        class="shabbat-toggle-btn" 
-                        onclick="handleControlAction('{{ timer_id }}_TOGGLE', '{{ active_ctx }}')">
-                    ON / OFF
-                </button>
-            </div>
-            
-            <div class="timer-footer-note">שינוי שעות בבקר בלבד</div>
-        </div>
+            {# וודא שהמאקרו מקבל את ה-ID הנכון ואת ההקשר #}
+            {{ shabbat_macros.render_timer_card(i, active_ctx) }}
         {% endfor %}
     </div>
 </div>
 
 <style>
-    .shabbat-wrapper { direction: rtl; padding: 10px; }
-
-    /* עיצוב הלשוניות (Tabs) */
-    .shabbat-tabs-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+    .shabbat-wrapper { 
+        direction: rtl; 
+        padding: 15px; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        background: #1a1a1a;
+        min-height: 100vh;
+        color: #fff; /* כל הטקסט בדף יהיה לבן */
+    }
+    
+    .shabbat-wrapper * {
+        color: inherit; /* יורש צבע מההורה */
+    }
+    
+    .shabbat-wrapper p,
+    .shabbat-wrapper span,
+    .shabbat-wrapper div {
+        color: #fff; /* כל הטקסט לבן */
+    }
+    
+    .shabbat-tabs-nav { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 10px; 
+        margin-bottom: 25px; 
+        border-bottom: 2px solid #444; 
+        padding-bottom: 15px; 
+        background: #252525;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
+    }
+    
+    .shabbat-tab-link { 
+        background: #2d2d2d; 
+        color: #bbb; 
+        padding: 12px 20px; 
+        border-radius: 6px; 
+        border: 1px solid #444; 
+        font-weight: bold; 
+        font-size: 0.9rem; 
+        cursor: pointer; 
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .shabbat-tab-link:hover {
+        background: #3d2d3d;
+        border-color: #555;
+        transform: translateY(-2px);
+    }
+    
+    .shabbat-tab-link.active { 
+        background: #3d5a80; /* כחול - זהה לבנים */
+        color: #fff; 
+        border-color: #5a7ba0;
+        box-shadow: 0 4px 12px rgba(61, 90, 128, 0.5);
+    }
+    
+    .shabbat-status-header {
+        text-align: center;
+        color: #fff;
         margin-bottom: 25px;
-        border-bottom: 2px solid #333;
-        padding-bottom: 12px;
-    }
-
-    .shabbat-tab-link {
-        text-decoration: none;
-        background: #222;
-        color: #aaa;
-        padding: 10px 18px;
-        border-radius: 6px;
-        border: 1px solid #444;
+        padding: 15px;
+        background: #252525;
+        border-radius: 8px;
+        border: 1px solid #333;
+        font-size: 1.1rem;
         font-weight: bold;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
     }
-
-    .shabbat-tab-link.active {
-        background: #f1c40f; /* צהוב שבת */
-        color: #000;
-        border-color: #f1c40f;
-        box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+    
+    .shabbat-timers-grid { 
+        display: grid; 
+        grid-template-columns: 1fr; 
+        gap: 20px; 
     }
-
-    .shabbat-header-info {
-        color: #888;
-        margin-bottom: 20px;
-        font-size: 0.9rem;
-        text-align: right;
+    
+    @media (min-width: 768px) { 
+        .shabbat-timers-grid { 
+            grid-template-columns: 1fr 1fr; 
+        } 
     }
-
-    /* כרטיסי שעונים */
-    .shabbat-timers-grid {
+    
+    /* כרטיס שעון */
+    .timer-card {
+        background: #2d2d2d;
+        border: 2px solid #444;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .timer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.9);
+    }
+    
+    .timer-header {
         display: flex;
         flex-direction: column;
         gap: 12px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #444;
     }
-
-    .timer-card {
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 10px;
-        padding: 15px;
+    
+    .timer-info-top {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        gap: 15px;
+        align-items: center;
     }
-
-    .timer-main-info {
+    
+    .timer-label {
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    
+    .timer-control-group {
         display: flex;
         align-items: center;
-        gap: 20px;
-        min-width: 120px;
+        gap: 12px;
     }
-
-    .timer-label {
-        color: #f1c40f;
-        font-size: 1.2rem;
-        font-weight: bold;
+    
+    /* נורות סטטוס - עיצוב תעשייתי */
+    .status-indicator { 
+        width: 18px; 
+        height: 18px; 
+        border-radius: 50%; 
+        display: inline-block;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
     }
-
-    /* נורית סטטוס - גודל ספציפי, צבעים מ-style.css */
-    .status-indicator {
-        width: 16px;
-        height: 16px;
-        border: 1px solid #555;
-        /* Colors and other styles from unified CSS */
+    
+    .status-indicator.on { 
+        background-color: #00ff00; 
+        box-shadow: 0 0 10px #00ff00; 
     }
-
-    .timer-actions { flex-grow: 1; text-align: right; }
-
+    
+    .status-indicator.off { 
+        background-color: #ff0000; 
+        box-shadow: 0 0 10px #700000; 
+    }
+    
+    .status-indicator.unknown {
+        background-color: #808080;
+        box-shadow: 0 0 8px #555;
+        animation: pulse-gray 2s infinite ease-in-out;
+    }
+    
+    /* כפתור ON/OFF - עיצוב תעשייתי */
     .shabbat-toggle-btn {
-        background: #222;
-        color: #2ecc71;
-        border: 2px solid #2ecc71;
-        padding: 12px 25px;
-        border-radius: 8px;
-        cursor: pointer;
+        padding: 8px 20px;
+        border: 1px solid #555;
+        border-radius: 4px;
         font-weight: bold;
+        font-size: 0.9rem;
+        cursor: pointer;
         transition: all 0.2s;
-        width: 100%;
-        max-width: 180px;
+        text-transform: uppercase;
+        min-width: 70px;
+        font-family: inherit;
     }
-
-    .shabbat-toggle-btn:active {
-        transform: scale(0.95);
-        background: #333;
+    
+    .shabbat-toggle-btn.on {
+        background: #004d00;
+        color: #90ee90;
+        border-color: #006600;
     }
-
-    .timer-footer-note {
-        font-size: 0.75rem;
-        color: #555;
-        width: 100px;
-        text-align: right;
+    
+    .shabbat-toggle-btn.on:hover {
+        background: #006600;
+        box-shadow: 0 0 12px rgba(0, 200, 0, 0.4);
+        transform: scale(1.05);
     }
-
-    /* התאמה למובייל */
-    @media (max-width: 600px) {
-        .timer-card {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        .timer-actions { width: 100%; text-align: center; }
-        .shabbat-toggle-btn { max-width: 100%; }
-        .timer-footer-note { width: 100%; text-align: right; margin-top: 5px; }
+    
+    .shabbat-toggle-btn.off {
+        background: #4d0000;
+        color: #ff6b6b;
+        border-color: #660000;
+    }
+    
+    .shabbat-toggle-btn.off:hover {
+        background: #660000;
+        box-shadow: 0 0 12px rgba(200, 0, 0, 0.4);
+        transform: scale(1.05);
+    }
+    
+    .shabbat-toggle-btn.unknown {
+        background: #3d3d3d;
+        color: #bbb;
+        border-color: #555;
+    }
+    
+    .timer-times-display {
+        text-align: center;
+        padding: 8px;
+        background: #1e1e1e;
+        border-radius: 4px;
+        border: 1px solid #333;
+    }
+    
+    .time-display-text {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+    }
+    
+    @keyframes pulse-gray {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    /* סקציות כרטיס */
+    .timer-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .section-title {
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-height: 30px;
+    }
+    
+    .no-data {
+        color: #888;
+        font-style: italic;
+        font-size: 0.85rem;
+    }
+    
+    /* שבבי מבנים וימים - עיצוב זהה לבנים */
+    .b-chip { 
+        background: #3d5a80; /* כחול - זהה לבנים */
+        color: #fff; 
+        padding: 4px 10px; 
+        border-radius: 4px; 
+        font-size: 0.8rem; 
+        margin: 3px; 
+        display: inline-block;
+        border: 1px solid #5a7ba0;
+        font-weight: 500;
+    }
+    
+    .d-chip { 
+        background: #4a6741; /* ירוק - זהה לבנים */
+        color: #fff; 
+        width: 28px; 
+        height: 28px; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        border-radius: 4px; 
+        font-size: 0.85rem; 
+        font-weight: bold;
+        border: 1px solid #5a7ba0;
+        margin: 3px;
     }
 </style>
 
@@ -194,9 +341,71 @@
      * הפונקציה נקראת אוטומטית ע"י control_base
      */
     function refreshControlStatus() {
-        // אנחנו שולחים את ההקשר הנוכחי (למשל GIRLS_SHABBAT_AC1) ל-API
-        // כדי לקבל את המצב של 4 השעונים ששייכים ללשונית הזו
-        updateControlIndicators('/api/status/shabbat?context={{ active_ctx }}');
+        fetch('/api/status/shabbat?context={{ active_ctx }}')
+            .then(response => response.json())
+            .then(data => {
+                // ה-API מחזיר ישירות {clocks: [...], time: "...", area: "..."}
+                console.log("Shabbat API response:", data);
+                if (!data || !data.clocks || !Array.isArray(data.clocks)) {
+                    console.warn("No clocks data received or invalid format:", data);
+                    return;
+                }
+
+                data.clocks.forEach((clock, index) => {
+                    console.log(`Clock ${index + 1}:`, clock);
+                    const idx = index + 1;
+                    
+                    // עדכון נורית
+                    const stat = document.getElementById(`stat_${idx}`);
+                    if(stat) {
+                        const state = clock.is_on ? 'on' : 'off';
+                        stat.className = `status-indicator ${state}`;
+                    }
+                    
+                    // עדכון כפתור ON/OFF - לצד הנורה
+                    const toggleBtn = document.getElementById(`toggle_btn_${idx}`);
+                    if(toggleBtn) {
+                        const state = clock.is_on ? 'on' : 'off';
+                        toggleBtn.className = `shabbat-toggle-btn ${state}`;
+                        toggleBtn.innerText = clock.is_on ? 'ON' : 'OFF';
+                    }
+
+                    // עדכון תצוגת שעות - פורמט: ON HH:MM / OFF HH:MM
+                    const timeDisplay = document.getElementById(`time_display_${idx}`);
+                    if(timeDisplay) {
+                        const onTime = clock.on_time || '--:--';
+                        const offTime = clock.off_time || '--:--';
+                        timeDisplay.textContent = `${onTime} / ${offTime}`;
+                    }
+
+                    // עדכון מבנים משוייכים
+                    const buildingsContainer = document.getElementById(`buildings_${idx}`);
+                    if(buildingsContainer) {
+                        if(clock.buildings && clock.buildings.length > 0) {
+                            buildingsContainer.innerHTML = clock.buildings.map(b => 
+                                `<span class="b-chip">${b}</span>`
+                            ).join('');
+                        } else {
+                            buildingsContainer.innerHTML = '<span class="no-data">אין מבנים משוייכים</span>';
+                        }
+                    }
+
+                    // עדכון ימי פעילות
+                    const daysContainer = document.getElementById(`days_${idx}`);
+                    if(daysContainer) {
+                        if(clock.days && clock.days.length > 0) {
+                            daysContainer.innerHTML = clock.days.map(d => 
+                                `<span class="d-chip">${d}</span>`
+                            ).join('');
+                        } else {
+                            daysContainer.innerHTML = '<span class="no-data">אין ימים פעילים</span>';
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("Error fetching shabbat status:", error);
+            });
     }
 </script>
 {% endblock %}

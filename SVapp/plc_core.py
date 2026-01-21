@@ -402,7 +402,8 @@ def fetch_shabbat_data(area, context_key):
             return {"clocks": [], "time": "--:--", "error": "No image available"}
 
         # 3. פענוח נתוני השעונים (זמנים, ימים ומבנים)
-        clocks_list = parse_shabbat_clocks(img)
+        # העברת area ל-parse_shabbat_clocks (לעתיד - אם יהיו קואורדינטות שונות)
+        clocks_list = parse_shabbat_clocks(img, area=area_upper)
         
         logger.info(f"Parsed {len(clocks_list)} shabbat clocks for context {context_key}")
 
@@ -796,7 +797,7 @@ def get_shabbat_status_data(context_name):
         img = Image.open(io.BytesIO(img_data)).convert('RGB')
         
         # 3. פענוח
-        clocks = parse_shabbat_clocks(img)
+        clocks = parse_shabbat_clocks(img, area='boys')  # ברירת מחדל לבנים
         return {"success": True, "clocks": clocks}
 
     except Exception as e:
@@ -1163,22 +1164,35 @@ def parse_time_box(image, config_key):
         if i == 1: res += ":" # הוספת נקודתיים בפורמט HH:MM
     return res
     
-def parse_shabbat_clocks(image):
+def parse_shabbat_clocks(image, area='boys'):
     """
     סורקת את כל 4 שעוני השבת בדף ומחזירה רשימה מסודרת של הנתונים.
-    משתמשת בקואורדינטות המדויקות מ-SHABBAT_STATUS_POINTS_BOYS.
+    משתמשת בקואורדינטות המדויקות מ-SHABBAT_STATUS_POINTS_BOYS (או GIRLS/PUBLIC אם קיימים).
+    
+    Args:
+        image: PIL Image object
+        area: 'boys', 'girls', או 'public' - לקביעת הקואורדינטות הנכונות
     """
     if not image:
         return []
     
     results = []
     
+    # בחירת קואורדינטות לפי אזור (כרגע כולם משתמשים ב-BOYS)
+    status_points = monitor_config.SHABBAT_STATUS_POINTS_BOYS
+    if area.lower() == 'girls':
+        # אם יש קואורדינטות ספציפיות לבנות, נשתמש בהן
+        status_points = getattr(monitor_config, 'SHABBAT_STATUS_POINTS_GIRLS', status_points)
+    elif area.lower() == 'public':
+        # אם יש קואורדינטות ספציפיות לציבורי, נשתמש בהן
+        status_points = getattr(monitor_config, 'SHABBAT_STATUS_POINTS_PUBLIC', status_points)
+    
     for i in range(4):
         timer_key = f"timer_{i+1}"
         
         # חישוב ה-Y offset לפי הקואורדינטות המדויקות
         # שעון 1: Y=266, שעון 2: Y=412, שעון 3: Y=556, שעון 4: Y=701
-        status_coords = monitor_config.SHABBAT_STATUS_POINTS_BOYS.get(timer_key)
+        status_coords = status_points.get(timer_key)
         if not status_coords:
             logger.warning(f"Timer {i+1} coordinates not found in SHABBAT_STATUS_POINTS_BOYS")
             continue
@@ -1203,7 +1217,7 @@ def parse_shabbat_clocks(image):
         
         # שימוש בפונקציה לסריקת נתוני שעון בודד
         try:
-            clock_data = scan_shabbat_clock(image, current_offset)
+            clock_data = scan_shabbat_clock(image, current_offset, area=area)
         except Exception as e:
             import traceback
             logger.error(f"Timer {i+1} error in scan_shabbat_clock: {e}")
@@ -1236,7 +1250,7 @@ def update_shabbat_status():
         return {}
     
     image = Image.open(io.BytesIO(image_data)).convert('RGB')
-    clocks = parse_shabbat_clocks(image)
+    clocks = parse_shabbat_clocks(image, area='boys')  # ברירת מחדל לבנים
     
     if clocks:
         return {"clock_1": clocks[0]}
@@ -1293,8 +1307,15 @@ def get_controller_time():
         return dt.datetime.now().strftime("%H:%M:%S")
         
         
-def scan_shabbat_clock(img, offset_y):
-    """סורקת שעון בודד לפי היסט ה-Y שלו - משתמשת בקואורדינטות המדויקות"""
+def scan_shabbat_clock(img, offset_y, area='boys'):
+    """
+    סורקת שעון בודד לפי היסט ה-Y שלו - משתמשת בקואורדינטות המדויקות.
+    
+    Args:
+        img: PIL Image object
+        offset_y: היסט Y לפי השעון (0 לשעון 1, 146 לשעון 2, וכו')
+        area: 'boys', 'girls', או 'public' - לקביעת קואורדינטות המבנים הנכונות
+    """
     
     # בדיקת טיפוס offset_y
     if not isinstance(offset_y, (int, float)):
@@ -1327,31 +1348,86 @@ def scan_shabbat_clock(img, offset_y):
     start_time = get_time_string(monitor_config.START_TIME_X)
     stop_time = get_time_string(monitor_config.STOP_TIME_X)
 
-    # 2. בדיקת ימים פעילים
+    # 2. בדיקת ימים פעילים - בדיקה לפי טווחי פיקסלים
     active_days = []
-    days_y = monitor_config.SHABBAT_TIME_Y_BASE + offset_y + 2  # Y של שורת הימים
-    # וידוא ש-SHABBAT_DAYS_X הוא dict
-    if not isinstance(monitor_config.SHABBAT_DAYS_X, dict):
-        logger.error(f"SHABBAT_DAYS_X is not a dict: {type(monitor_config.SHABBAT_DAYS_X)}")
-    else:
-        for day, x in monitor_config.SHABBAT_DAYS_X.items():
-            try:
-                if 0 <= x < img.width and 0 <= days_y < img.height:
-                    pixel = img.getpixel((x, days_y))
-                    if is_pixel_active_green(pixel):
-                        active_days.append(day)
-            except Exception as e:
-                logger.debug(f"Error checking day {day} at ({x}, {days_y}): {e}")
+    days_y = monitor_config.SHABBAT_DAYS_Y + offset_y  # Y קבוע: 285 + offset
+    
+    # שימוש בטווחי X החדשים לבדיקה מדויקת יותר
+    days_x_ranges = getattr(monitor_config, 'SHABBAT_DAYS_X_RANGES', {})
+    if not days_x_ranges:
+        # fallback ל-SHABBAT_DAYS_X הישן (נקודה בודדת)
+        logger.warning("SHABBAT_DAYS_X_RANGES not found, using SHABBAT_DAYS_X")
+        days_x_ranges = {day: (x, x) for day, x in monitor_config.SHABBAT_DAYS_X.items()}
+    
+    for day, (x_start, x_end) in days_x_ranges.items():
+        try:
+            # בדיקת גבולות
+            if not (0 <= days_y < img.height):
+                logger.debug(f"Day {day} Y out of bounds: {days_y}")
+                continue
+            
+            green_count = 0
+            total_checked = 0
+            
+            # סריקה של כל הפיקסלים בטווח X
+            for x in range(x_start, x_end + 1):
+                if 0 <= x < img.width:
+                    try:
+                        pixel = img.getpixel((x, days_y))
+                        r, g, b = pixel
+                        
+                        # בדיקת ירוק: RGB(0,250,0) עד RGB(0,255,0)
+                        if r < 10 and 250 <= g <= 255 and b < 10:
+                            green_count += 1
+                        
+                        total_checked += 1
+                    except Exception as e:
+                        logger.debug(f"Error reading pixel at ({x}, {days_y}) for day {day}: {e}")
+                        continue
+            
+            # אם רוב הפיקסלים ירוקים - היום נבחר
+            if total_checked > 0 and green_count >= total_checked * 0.5:
+                active_days.append(day)
+                logger.debug(f"Day {day} is active: {green_count}/{total_checked} green pixels")
+            else:
+                logger.debug(f"Day {day} is not active: {green_count}/{total_checked} green pixels")
+                
+        except Exception as e:
+            logger.warning(f"Error checking day {day} at range ({x_start}-{x_end}, {days_y}): {e}")
+            continue
 
     # 3. בדיקת מבנים פעילים - שתי שורות (Y=222 ו-Y=279)
     active_buildings = []
-    # שורה ראשונה (Y=222): בתים 1, 2, 11א1, 11א2, 11ב1, 11ב2
-    buildings_y_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1', 222) + offset_y
-    # שורה שנייה (Y=279): בתים 2, 3, 4, 5, 9א, 9ב
-    buildings_y_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2', 279) + offset_y
+    # בחירת קואורדינטות לפי אזור (בנים/בנות/ציבורי)
+    area_lower = area.lower()
+    if area_lower == 'girls':
+        # קואורדינטות לבנות (אם קיימות)
+        buildings_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1_GIRLS', 
+                                getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1', {}))
+        buildings_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2_GIRLS', 
+                                getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2', {}))
+        buildings_y_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1_GIRLS', 
+                                   getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1', 222)) + offset_y
+        buildings_y_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2_GIRLS', 
+                                   getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2', 279)) + offset_y
+    elif area_lower == 'public':
+        # קואורדינטות לציבורי (אם קיימות)
+        buildings_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1_PUBLIC', 
+                                getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1', {}))
+        buildings_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2_PUBLIC', 
+                                getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2', {}))
+        buildings_y_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1_PUBLIC', 
+                                   getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1', 222)) + offset_y
+        buildings_y_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2_PUBLIC', 
+                                   getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2', 279)) + offset_y
+    else:
+        # ברירת מחדל - בנים
+        buildings_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1', {})
+        buildings_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW2', {})
+        buildings_y_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW1', 222) + offset_y
+        buildings_y_row2 = getattr(monitor_config, 'SHABBAT_BUILDINGS_Y_ROW2', 279) + offset_y
     
     # בדיקת שורה ראשונה
-    buildings_row1 = getattr(monitor_config, 'SHABBAT_BUILDINGS_X_ROW1', {})
     # וידוא ש-buildings_row1 הוא dict
     if not isinstance(buildings_row1, dict):
         logger.error(f"SHABBAT_BUILDINGS_X_ROW1 is not a dict: {type(buildings_row1)}, value: {buildings_row1}")
