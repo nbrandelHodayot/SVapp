@@ -202,71 +202,129 @@ COMMANDS = {
     
     # =========================================================================
     # פקודות הפעלה בדף "בקרת אזורים - אזור בנים - חלוקה למבנים" (C_B_S / BOYS_SPLIT)
-    # הקואורדינטות מחושבות לפי MONITOR_POINTS_CONTROL_SPLIT["boys"]
-    # הכפתורים נמצאים משמאל לנורה: ON ב-X-80, OFF ב-X-40 (צריך לבדוק במציאות)
+    # עדכון שמות כפתורים וקואורדינטות מדויקות
     # =========================================================================
     # בית 1
-    "AC_B1_ON": {"x": 759, "y": 186, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(839, 186)
-    "AC_B1_OFF": {"x": 799, "y": 186, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B1_ON": {"x": 759, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B1_OFF": {"x": 799, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B1_ON": {"x": 759, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B1_OFF": {"x": 799, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_AC_ON": {"x": 783, "y": 193, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_AC_OFF": {"x": 800, "y": 185, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_R_ON": {"x": 735, "y": 229, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_R_OFF": {"x": 791, "y": 228, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_WC_ON": {"x": 735, "y": 229, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B1_WC_OFF": {"x": 788, "y": 265, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 2
-    "AC_B2_ON": {"x": 419, "y": 186, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(499, 186)
-    "AC_B2_OFF": {"x": 459, "y": 186, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B2_ON": {"x": 419, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B2_OFF": {"x": 459, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B2_ON": {"x": 419, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B2_OFF": {"x": 459, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_AC_ON": {"x": 391, "y": 184, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_AC_OFF": {"x": 437, "y": 181, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_R_ON": {"x": 402, "y": 224, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_R_OFF": {"x": 445, "y": 225, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_WC_ON": {"x": 390, "y": 258, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B2_WC_OFF": {"x": 449, "y": 261, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 3
-    "AC_B3_ON": {"x": 79, "y": 190, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(159, 190)
-    "AC_B3_OFF": {"x": 119, "y": 190, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B3_ON": {"x": 79, "y": 228, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B3_OFF": {"x": 119, "y": 228, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B3_ON": {"x": 79, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B3_OFF": {"x": 119, "y": 268, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_AC_ON": {"x": 56, "y": 184, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_AC_OFF": {"x": 105, "y": 189, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_R_ON": {"x": 61, "y": 226, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_R_OFF": {"x": 103, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_WC_ON": {"x": 41, "y": 269, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B3_WC_OFF": {"x": 116, "y": 264, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 4
-    "AC_B4_ON": {"x": 759, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(839, 354)
-    "AC_B4_OFF": {"x": 799, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B4_ON": {"x": 759, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B4_OFF": {"x": 799, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B4_ON": {"x": 759, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B4_OFF": {"x": 799, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_AC_ON": {"x": 735, "y": 352, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_AC_OFF": {"x": 782, "y": 357, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_R_ON": {"x": 733, "y": 392, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_R_OFF": {"x": 789, "y": 391, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_WC_ON": {"x": 743, "y": 431, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B4_WC_OFF": {"x": 780, "y": 428, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 5
-    "AC_B5_ON": {"x": 419, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(499, 354)
-    "AC_B5_OFF": {"x": 459, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B5_ON": {"x": 419, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B5_OFF": {"x": 459, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B5_ON": {"x": 419, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B5_OFF": {"x": 459, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_AC_ON": {"x": 399, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_AC_OFF": {"x": 443, "y": 361, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_R_ON": {"x": 393, "y": 437, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_R_OFF": {"x": 454, "y": 438, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_WC_ON": {"x": 398, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B5_WC_OFF": {"x": 447, "y": 387, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 9
-    "AC_B9A_ON": {"x": 79, "y": 358, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(159, 358)
-    "AC_B9A_OFF": {"x": 119, "y": 358, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "AC_B9B_ON": {"x": 79, "y": 399, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(159, 399)
-    "AC_B9B_OFF": {"x": 119, "y": 399, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B9_ON": {"x": 79, "y": 440, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B9_OFF": {"x": 119, "y": 440, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B9_ON": {"x": 79, "y": 478, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B9_OFF": {"x": 119, "y": 478, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_AC1_ON": {"x": 47, "y": 357, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_AC1_OFF": {"x": 117, "y": 356, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_AC2_ON": {"x": 54, "y": 394, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_AC2_OFF": {"x": 109, "y": 407, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_R_ON": {"x": 54, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_R_OFF": {"x": 110, "y": 448, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_WC_ON": {"x": 58, "y": 475, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B9_WC_OFF": {"x": 111, "y": 487, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 11 קומה א'
-    "AC_B11AA_ON": {"x": 759, "y": 534, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(839, 534)
-    "AC_B11AA_OFF": {"x": 799, "y": 534, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "AC_B11AB_ON": {"x": 759, "y": 575, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(839, 575)
-    "AC_B11AB_OFF": {"x": 799, "y": 575, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B11A_ON": {"x": 759, "y": 616, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B11A_OFF": {"x": 799, "y": 616, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B11A_ON": {"x": 759, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B11A_OFF": {"x": 799, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_AC1_ON": {"x": 739, "y": 531, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_AC1_OFF": {"x": 793, "y": 530, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_AC2_ON": {"x": 737, "y": 567, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_AC2_OFF": {"x": 792, "y": 570, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_R_ON": {"x": 740, "y": 614, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_R_OFF": {"x": 789, "y": 617, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_WC_ON": {"x": 733, "y": 653, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_WC_OFF": {"x": 792, "y": 648, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_H_ON": {"x": 738, "y": 689, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11a_H_OFF": {"x": 797, "y": 688, "n": CONTEXT_N["BOYS_SPLIT"]},
     # בית 11 קומה ב'
-    "AC_B11BA_ON": {"x": 419, "y": 534, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(499, 534)
-    "AC_B11BA_OFF": {"x": 459, "y": 534, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "AC_B11BB_ON": {"x": 419, "y": 575, "n": CONTEXT_N["BOYS_SPLIT"]},  # נורה ב-(499, 575)
-    "AC_B11BB_OFF": {"x": 459, "y": 575, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B11B_ON": {"x": 419, "y": 616, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "R_B11B_OFF": {"x": 459, "y": 616, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B11B_ON": {"x": 419, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
-    "T_B11B_OFF": {"x": 459, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_AC1_ON": {"x": 387, "y": 528, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_AC1_OFF": {"x": 447, "y": 533, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_AC2_ON": {"x": 381, "y": 566, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_AC2_OFF": {"x": 437, "y": 572, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_R_ON": {"x": 394, "y": 610, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_R_OFF": {"x": 450, "y": 607, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_WC_ON": {"x": 391, "y": 659, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_WC_OFF": {"x": 450, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_H_ON": {"x": 386, "y": 690, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "B11b_H_OFF": {"x": 456, "y": 699, "n": CONTEXT_N["BOYS_SPLIT"]},
+    # שמות ישנים לשמירת תאימות (deprecated - יוסר בעתיד)
+    "AC_B1_ON": {"x": 783, "y": 193, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B1_OFF": {"x": 800, "y": 185, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B1_ON": {"x": 735, "y": 229, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B1_OFF": {"x": 791, "y": 228, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B1_ON": {"x": 735, "y": 229, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B1_OFF": {"x": 788, "y": 265, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B2_ON": {"x": 391, "y": 184, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B2_OFF": {"x": 437, "y": 181, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B2_ON": {"x": 402, "y": 224, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B2_OFF": {"x": 445, "y": 225, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B2_ON": {"x": 390, "y": 258, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B2_OFF": {"x": 449, "y": 261, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B3_ON": {"x": 56, "y": 184, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B3_OFF": {"x": 105, "y": 189, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B3_ON": {"x": 61, "y": 226, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B3_OFF": {"x": 103, "y": 227, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B3_ON": {"x": 41, "y": 269, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B3_OFF": {"x": 116, "y": 264, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B4_ON": {"x": 735, "y": 352, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B4_OFF": {"x": 782, "y": 357, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B4_ON": {"x": 733, "y": 392, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B4_OFF": {"x": 789, "y": 391, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B4_ON": {"x": 743, "y": 431, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B4_OFF": {"x": 780, "y": 428, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B5_ON": {"x": 399, "y": 354, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B5_OFF": {"x": 443, "y": 361, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B5_ON": {"x": 393, "y": 437, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B5_OFF": {"x": 454, "y": 438, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B5_ON": {"x": 398, "y": 395, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B5_OFF": {"x": 447, "y": 387, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B9A_ON": {"x": 47, "y": 357, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B9A_OFF": {"x": 117, "y": 356, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B9B_ON": {"x": 54, "y": 394, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B9B_OFF": {"x": 109, "y": 407, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B9_ON": {"x": 54, "y": 436, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B9_OFF": {"x": 110, "y": 448, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B9_ON": {"x": 58, "y": 475, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B9_OFF": {"x": 111, "y": 487, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11AA_ON": {"x": 739, "y": 531, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11AA_OFF": {"x": 793, "y": 530, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11AB_ON": {"x": 737, "y": 567, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11AB_OFF": {"x": 792, "y": 570, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B11A_ON": {"x": 740, "y": 614, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B11A_OFF": {"x": 789, "y": 617, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B11A_ON": {"x": 733, "y": 653, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B11A_OFF": {"x": 792, "y": 648, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11BA_ON": {"x": 387, "y": 528, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11BA_OFF": {"x": 447, "y": 533, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11BB_ON": {"x": 381, "y": 566, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "AC_B11BB_OFF": {"x": 437, "y": 572, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B11B_ON": {"x": 394, "y": 610, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "R_B11B_OFF": {"x": 450, "y": 607, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B11B_ON": {"x": 391, "y": 659, "n": CONTEXT_N["BOYS_SPLIT"]},
+    "T_B11B_OFF": {"x": 450, "y": 654, "n": CONTEXT_N["BOYS_SPLIT"]},
     
     # =========================================================================
     # פקודות הפעלה בדף "בקרת אזורים - אזור בנים - הפעלה כללית" (BOYS_GENERAL)
@@ -296,18 +354,20 @@ COMMANDS = {
     
     # =========================================================================
     # פקודות הפעלה בדף "בקרת אזורים - אזור בנות - חלוקה למבנים" (C_G_S)
-    # GIRLS_SPLIT_1 (n=00100000000000000000): בתים 7, 8, 10, C23-C26
+    # GIRLS_SPLIT_1 (n=00100000000000000000): בתים 7, 8, 10, C20-C26
+    # GIRLS_SPLIT_2 (n=00110000000000000000): בתים 12, 13
+    # עדכון שמות כפתורים וקואורדינטות מדויקות
     # =========================================================================
-    # בית 7
-    "B7_ACa_ON": {"x": 721, "y": 206, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B7_ACa_OFF": {"x": 790, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B7_ACb_ON": {"x": 732, "y": 241, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B7_ACb_OFF": {"x": 784, "y": 237, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # בית 7 (GIRLS_SPLIT_1)
+    "B7_AC1_ON": {"x": 721, "y": 206, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_AC1_OFF": {"x": 790, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_AC2_ON": {"x": 732, "y": 241, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_AC2_OFF": {"x": 784, "y": 237, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B7_R_ON": {"x": 729, "y": 279, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B7_R_OFF": {"x": 781, "y": 279, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B7_WC_ON": {"x": 728, "y": 321, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B7_WC_OFF": {"x": 775, "y": 326, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    # בית 8
+    # בית 8 (GIRLS_SPLIT_1)
     "B8_AC_ON": {"x": 403, "y": 199, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B8_AC_OFF": {"x": 454, "y": 198, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B8_R_ON": {"x": 397, "y": 241, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
@@ -316,26 +376,110 @@ COMMANDS = {
     "B8_WC_OFF": {"x": 452, "y": 282, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B8_H_ON": {"x": 394, "y": 318, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B8_H_OFF": {"x": 450, "y": 319, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    # בית 10
+    # בית 10 (GIRLS_SPLIT_1)
+    "B10_AC1_ON": {"x": 62, "y": 164, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_AC1_OFF": {"x": 125, "y": 167, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_AC2_ON": {"x": 73, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_AC2_OFF": {"x": 125, "y": 199, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_R_ON": {"x": 75, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_R_OFF": {"x": 127, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # Y=162 נראה שגוי, משתמש ב-243 כמו ON
+    "B10_WC_ON": {"x": 75, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # X=399 נראה שגוי, משתמש ב-75
+    "B10_WC_OFF": {"x": 129, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # Y=284 נראה שגוי, משתמש ב-325
+    "B10_H_ON": {"x": 70, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B10_H_OFF": {"x": 124, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C20 (GIRLS_SPLIT_1)
+    "C20_AC_ON": {"x": 726, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: pos_x=726pos_y=418 -> 726,418
+    "C20_AC_OFF": {"x": 780, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_R_ON": {"x": 726, "y": 458, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_R_OFF": {"x": 780, "y": 458, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C21 (GIRLS_SPLIT_1)
+    "C21_AC_ON": {"x": 398, "y": 554, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_AC_OFF": {"x": 454, "y": 555, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_R_ON": {"x": 401, "y": 591, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_R_OFF": {"x": 454, "y": 596, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C22 (GIRLS_SPLIT_1)
+    "C22_AC_ON": {"x": 67, "y": 555, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C22_AC_OFF": {"x": 130, "y": 549, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C22_R_ON": {"x": 64, "y": 593, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C22_R_OFF": {"x": 117, "y": 589, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C23 (GIRLS_SPLIT_1)
+    "C23_AC_ON": {"x": 721, "y": 546, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C23_AC_OFF": {"x": 781, "y": 557, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C23_R_ON": {"x": 725, "y": 596, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C23_R_OFF": {"x": 787, "y": 596, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C24 (GIRLS_SPLIT_1) - שימוש באותן קואורדינטות כמו C21
+    "C24_AC_ON": {"x": 398, "y": 554, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C24_AC_OFF": {"x": 454, "y": 555, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C24_R_ON": {"x": 401, "y": 591, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C24_R_OFF": {"x": 454, "y": 596, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C25 (GIRLS_SPLIT_1) - שימוש באותן קואורדינטות כמו C22
+    "C25_AC_ON": {"x": 67, "y": 555, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C25_AC_OFF": {"x": 130, "y": 549, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C25_R_ON": {"x": 64, "y": 593, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C25_R_OFF": {"x": 117, "y": 589, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # C26 (GIRLS_SPLIT_1)
+    "C26_AC_ON": {"x": 723, "y": 690, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C26_AC_OFF": {"x": 780, "y": 696, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C26_R_ON": {"x": 735, "y": 732, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C26_R_OFF": {"x": 781, "y": 735, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    # בית 12 (GIRLS_SPLIT_2)
+    "B12a_AC_ON": {"x": 733, "y": 220, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_AC_OFF": {"x": 783, "y": 220, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # pos_x=124 נראה שגוי, משתמש ב-783
+    "B12a_R_ON": {"x": 724, "y": 259, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_R_OFF": {"x": 783, "y": 257, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_WC_ON": {"x": 731, "y": 297, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_WC_OFF": {"x": 777, "y": 301, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_H_ON": {"x": 727, "y": 335, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12a_H_OFF": {"x": 786, "y": 336, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12b_AC_ON": {"x": 390, "y": 216, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12b_AC_OFF": {"x": 449, "y": 216, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # pos_x=397 נראה שגוי, משתמש ב-449
+    "B12b_R_ON": {"x": 401, "y": 259, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12b_R_OFF": {"x": 458, "y": 260, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12b_WC_ON": {"x": 397, "y": 299, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12b_WC_OFF": {"x": 453, "y": 295, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_AC_ON": {"x": 70, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_AC_OFF": {"x": 128, "y": 327, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_R_ON": {"x": 75, "y": 262, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_R_OFF": {"x": 129, "y": 262, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # pos_x=453 נראה שגוי, משתמש ב-129
+    "B12c_WC_ON": {"x": 67, "y": 297, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B12c_WC_OFF": {"x": 129, "y": 301, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    # בית 13 (GIRLS_SPLIT_2)
+    "B13a_AC_ON": {"x": 723, "y": 487, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_AC_OFF": {"x": 777, "y": 490, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_R_ON": {"x": 729, "y": 528, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_R_OFF": {"x": 782, "y": 525, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_WC_ON": {"x": 726, "y": 569, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_WC_OFF": {"x": 789, "y": 570, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_H_ON": {"x": 728, "y": 610, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13a_H_OFF": {"x": 780, "y": 604, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_AC_ON": {"x": 394, "y": 494, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_AC_OFF": {"x": 449, "y": 487, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_R_ON": {"x": 396, "y": 531, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_R_OFF": {"x": 451, "y": 528, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_WC_ON": {"x": 395, "y": 572, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13b_WC_OFF": {"x": 450, "y": 567, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_AC_ON": {"x": 64, "y": 495, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_AC_OFF": {"x": 122, "y": 488, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_R_ON": {"x": 73, "y": 528, "n": CONTEXT_N["GIRLS_SPLIT_2"]},  # pos_x=398 נראה שגוי, משתמש ב-73
+    "B13c_R_OFF": {"x": 117, "y": 528, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_WC_ON": {"x": 73, "y": 573, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    "B13c_WC_OFF": {"x": 120, "y": 574, "n": CONTEXT_N["GIRLS_SPLIT_2"]},
+    # שמות ישנים לשמירת תאימות (deprecated - יוסר בעתיד)
+    "B7_ACa_ON": {"x": 721, "y": 206, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_ACa_OFF": {"x": 790, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_ACb_ON": {"x": 732, "y": 241, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "B7_ACb_OFF": {"x": 784, "y": 237, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_ACa_ON": {"x": 62, "y": 164, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_ACa_OFF": {"x": 125, "y": 167, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_ACb_ON": {"x": 73, "y": 202, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "B10_ACb_OFF": {"x": 125, "y": 199, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B10_R_ON": {"x": 75, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B10_R_OFF": {"x": 127, "y": 243, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: Y=243 כמו ON
-    "B10_WC_ON": {"x": 75, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: X=75 כמו שאר בית 10, Y=325 כמו נורה
-    "B10_WC_OFF": {"x": 129, "y": 325, "n": CONTEXT_N["GIRLS_SPLIT_1"]},  # תוקן: Y=325 כמו נורה
-    "B10_H_ON": {"x": 70, "y": 324, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "B10_H_OFF": {"x": 118, "y": 321, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    # C20
-    "C20_AC_ON": {"x": 721, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "C20_AC_OFF": {"x": 781, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "C20_ROOMS_ON": {"x": 725, "y": 453, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "C20_ROOMS_OFF": {"x": 787, "y": 453, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    # C21
-    "C21_AC_ON": {"x": 398, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "C21_AC_OFF": {"x": 454, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
-    "C21_ROOMS_ON": {"x": 401, "y": 453, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_AC_ON": {"x": 726, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_AC_OFF": {"x": 780, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_ROOMS_ON": {"x": 726, "y": 458, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C20_ROOMS_OFF": {"x": 780, "y": 458, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_AC_ON": {"x": 398, "y": 554, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_AC_OFF": {"x": 454, "y": 555, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
+    "C21_ROOMS_ON": {"x": 401, "y": 591, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     "C21_ROOMS_OFF": {"x": 454, "y": 453, "n": CONTEXT_N["GIRLS_SPLIT_1"]},
     # C22
     "C22_AC_ON": {"x": 67, "y": 418, "n": CONTEXT_N["GIRLS_SPLIT_1"]},

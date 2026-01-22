@@ -631,6 +631,95 @@ def get_coords_dynamic(action, context_name=None):
     buttons = getattr(config_app, 'BUTTONS', {})
     commands = getattr(config_app, 'COMMANDS', {})
     
+    # אם יש context_name, ננסה קודם לחפש עם הקונטקסט (לדפי חלוקה למבנים)
+    if context_name and context_name in ["C_B_S", "C_G_S", "C_P_S"]:
+        # נרמול: החלפת A/C ל-AC (למקרה של cache או גרסאות ישנות)
+        normalized_action = action.replace("A/C", "AC")
+        
+        # חיפוש ישיר ב-COMMANDS - זה הכי מהיר ואמין
+        coords = commands.get(normalized_action) or commands.get(action)
+        if coords:
+            res = coords.copy()
+            # אם ה-N לא מוגדר בפקודה עצמה, ניקח את ה-N של הקונטקסט
+            if 'n' not in res:
+                # מיפוי קונטקסט ל-CONTEXT_N
+                context_map = {
+                    "C_B_S": "BOYS_SPLIT",
+                    "C_G_S": "GIRLS_SPLIT_1",  # ברירת מחדל
+                    "C_P_S": "PUBLIC_SPLIT"
+                }
+                mapped_context = context_map.get(context_name, context_name)
+                target_n = config_app.CONTEXT_N.get(mapped_context)
+                if target_n:
+                    res['n'] = target_n
+            logger.info(f"Found command '{action}' in COMMANDS for context '{context_name}': {res}")
+            return res
+        
+        # אם לא נמצא ב-COMMANDS, ננסה לחשב מהנורות (רק לדפי חלוקה למבנים)
+        if normalized_action.endswith("_ON") or normalized_action.endswith("_OFF"):
+            device_name = normalized_action.replace("_ON", "").replace("_OFF", "")
+            is_on = normalized_action.endswith("_ON")
+            
+            # חיפוש הקואורדינטות של הנורה ב-MONITOR_POINTS_CONTROL_SPLIT
+            monitor_dict = None
+            if context_name == "C_B_S":
+                monitor_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {}).get("boys", {})
+            elif context_name == "C_G_S":
+                # בנות - צריך לבדוק גם girls1 וגם girls2
+                split_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {})
+                monitor_dict = {**split_dict.get("girls1", {}), **split_dict.get("girls2", {})}
+            elif context_name == "C_P_S":
+                monitor_dict = getattr(monitor_config, 'MONITOR_POINTS_CONTROL_SPLIT', {}).get("public", {})
+            
+            # חיפוש גם בשמות שונים (למשל AC_B1 vs AC_B1)
+            # בנות משתמשות בפורמט B7_AC_A במקום AC_B7
+            if monitor_dict:
+                # נסיון חיפוש ישיר
+                led_coords = monitor_dict.get(device_name)
+                
+                # אם לא נמצא, ננסה להתאים (למשל B7_AC_A -> ACA_B7)
+                if not led_coords and "_" in device_name:
+                    parts = device_name.split("_")
+                    # אם הפורמט הוא B7_AC_A, נהפוך ל-ACA_B7
+                    if len(parts) >= 3 and parts[1].startswith("AC"):
+                        if parts[1] == "AC" and len(parts) == 3:
+                            # B7_AC_A -> ACA_B7
+                            alternate_name = f"AC{parts[2]}_{parts[0]}"
+                            led_coords = monitor_dict.get(alternate_name)
+                
+                if led_coords:
+                    # קואורדינטות הנורה
+                    led_x, led_y = led_coords
+                    
+                    # בדף חלוקה למבנים, הכפתורים ON/OFF נמצאים משמאל לנורה
+                    # ON משמאל, OFF מימין (או להפך - צריך לבדוק)
+                    # לפי התבנית: נורה ב-X=839, כפתורים כנראה ב-X ~740-790
+                    # נשתמש בהפרש קבוע של ~50 פיקסלים
+                    button_x = led_x - (80 if is_on else 40)  # ON יותר שמאלה, OFF פחות שמאלה
+                    button_y = led_y  # אותו Y כמו הנורה
+                    
+                    # קביעת N לפי הקונטקסט
+                    context_map = {
+                        "C_B_S": "BOYS_SPLIT",
+                        "C_G_S": "GIRLS_SPLIT_1",  # ברירת מחדל
+                        "C_P_S": "PUBLIC_SPLIT"
+                    }
+                    mapped_context = context_map.get(context_name, context_name)
+                    target_n = config_app.CONTEXT_N.get(mapped_context)
+                    
+                    logger.info(f"Calculated button coordinates for {action}: ({button_x}, {button_y}) from LED at ({led_x}, {led_y})")
+                    
+                    return {
+                        "x": button_x,
+                        "y": button_y,
+                        "n": target_n
+                    }
+                else:
+                    logger.warning(f"Device '{device_name}' not found in MONITOR_POINTS_CONTROL_SPLIT for context '{context_name}'")
+            else:
+                logger.warning(f"No monitor dict found for context '{context_name}'")
+    
+    # חיפוש רגיל ב-COMMANDS (ללא קונטקסט)
     static_btn = tab_coords.get(action) or buttons.get(action) or commands.get(action)
     
     if static_btn:

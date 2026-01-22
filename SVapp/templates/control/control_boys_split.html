@@ -31,53 +31,55 @@
     <div class="buildings-grid">
         {# מבנים סטנדרטיים 1-5 #}
         {{ building_card("בית 1", [
-            {"label": "מיזוג", "monitor_id": "AC_B1", "action_on": "AC_B1_ON", "action_off": "AC_B1_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B1", "action_on": "R_B1_ON", "action_off": "R_B1_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B1", "action_on": "T_B1_ON", "action_off": "T_B1_OFF"}
+            {"label": "מיזוג", "monitor_id": "AC_B1", "action_on": "B1_AC_ON", "action_off": "B1_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B1", "action_on": "B1_R_ON", "action_off": "B1_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B1", "action_on": "B1_WC_ON", "action_off": "B1_WC_OFF"}
         ]) }}
         {{ building_card("בית 2", [
-            {"label": "מיזוג", "monitor_id": "AC_B2", "action_on": "AC_B2_ON", "action_off": "AC_B2_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B2", "action_on": "R_B2_ON", "action_off": "R_B2_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B2", "action_on": "T_B2_ON", "action_off": "T_B2_OFF"}
+            {"label": "מיזוג", "monitor_id": "AC_B2", "action_on": "B2_AC_ON", "action_off": "B2_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B2", "action_on": "B2_R_ON", "action_off": "B2_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B2", "action_on": "B2_WC_ON", "action_off": "B2_WC_OFF"}
         ]) }}
         {{ building_card("בית 3", [
-            {"label": "מיזוג", "monitor_id": "AC_B3", "action_on": "AC_B3_ON", "action_off": "AC_B3_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B3", "action_on": "R_B3_ON", "action_off": "R_B3_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B3", "action_on": "T_B3_ON", "action_off": "T_B3_OFF"}
+            {"label": "מיזוג", "monitor_id": "AC_B3", "action_on": "B3_AC_ON", "action_off": "B3_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B3", "action_on": "B3_R_ON", "action_off": "B3_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B3", "action_on": "B3_WC_ON", "action_off": "B3_WC_OFF"}
         ]) }}
         {{ building_card("בית 4", [
-            {"label": "מיזוג", "monitor_id": "AC_B4", "action_on": "AC_B4_ON", "action_off": "AC_B4_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B4", "action_on": "R_B4_ON", "action_off": "R_B4_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B4", "action_on": "T_B4_ON", "action_off": "T_B4_OFF"}
+            {"label": "מיזוג", "monitor_id": "AC_B4", "action_on": "B4_AC_ON", "action_off": "B4_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B4", "action_on": "B4_R_ON", "action_off": "B4_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B4", "action_on": "B4_WC_ON", "action_off": "B4_WC_OFF"}
         ]) }}
         {{ building_card("בית 5", [
-            {"label": "מיזוג", "monitor_id": "AC_B5", "action_on": "AC_B5_ON", "action_off": "AC_B5_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B5", "action_on": "R_B5_ON", "action_off": "R_B5_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B5", "action_on": "T_B5_ON", "action_off": "T_B5_OFF"}
+            {"label": "מיזוג", "monitor_id": "AC_B5", "action_on": "B5_AC_ON", "action_off": "B5_AC_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B5", "action_on": "B5_R_ON", "action_off": "B5_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B5", "action_on": "B5_WC_ON", "action_off": "B5_WC_OFF"}
         ]) }}
 
         {# בית 9 - עם פיצול מיזוג #}
         {{ building_card("בית 9", [
-            {"label": "מיזוג א'", "monitor_id": "AC_B9A", "action_on": "AC_B9A_ON", "action_off": "AC_B9A_OFF"},
-            {"label": "מיזוג ב'", "monitor_id": "AC_B9B", "action_on": "AC_B9B_ON", "action_off": "AC_B9B_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B9", "action_on": "R_B9_ON", "action_off": "R_B9_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B9", "action_on": "T_B9_ON", "action_off": "T_B9_OFF"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B9A", "action_on": "B9_AC1_ON", "action_off": "B9_AC1_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B9B", "action_on": "B9_AC2_ON", "action_off": "B9_AC2_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B9", "action_on": "B9_R_ON", "action_off": "B9_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B9", "action_on": "B9_WC_ON", "action_off": "B9_WC_OFF"}
         ]) }}
 
         {# בית 11 קומה א' #}
         {{ building_card("בית 11 - קומה א'", [
-            {"label": "מיזוג א'", "monitor_id": "AC_B11AA", "action_on": "AC_B11AA_ON", "action_off": "AC_B11AA_OFF"},
-            {"label": "מיזוג ב'", "monitor_id": "AC_B11AB", "action_on": "AC_B11AB_ON", "action_off": "AC_B11AB_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B11A", "action_on": "R_B11A_ON", "action_off": "R_B11A_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B11A", "action_on": "T_B11A_ON", "action_off": "T_B11A_OFF"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B11AA", "action_on": "B11a_AC1_ON", "action_off": "B11a_AC1_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B11AB", "action_on": "B11a_AC2_ON", "action_off": "B11a_AC2_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B11A", "action_on": "B11a_R_ON", "action_off": "B11a_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B11A", "action_on": "B11a_WC_ON", "action_off": "B11a_WC_OFF"},
+            {"label": "חימום", "monitor_id": "H_B11A", "action_on": "B11a_H_ON", "action_off": "B11a_H_OFF"}
         ]) }}
 
         {# בית 11 קומה ב' #}
         {{ building_card("בית 11 - קומה ב'", [
-            {"label": "מיזוג א'", "monitor_id": "AC_B11BA", "action_on": "AC_B11BA_ON", "action_off": "AC_B11BA_OFF"},
-            {"label": "מיזוג ב'", "monitor_id": "AC_B11BB", "action_on": "AC_B11BB_ON", "action_off": "AC_B11BB_OFF"},
-            {"label": "חדרים", "monitor_id": "R_B11B", "action_on": "R_B11B_ON", "action_off": "R_B11B_OFF"},
-            {"label": "שירותים", "monitor_id": "T_B11B", "action_on": "T_B11B_ON", "action_off": "T_B11B_OFF"}
+            {"label": "מיזוג א'", "monitor_id": "AC_B11BA", "action_on": "B11b_AC1_ON", "action_off": "B11b_AC1_OFF"},
+            {"label": "מיזוג ב'", "monitor_id": "AC_B11BB", "action_on": "B11b_AC2_ON", "action_off": "B11b_AC2_OFF"},
+            {"label": "חדרים", "monitor_id": "R_B11B", "action_on": "B11b_R_ON", "action_off": "B11b_R_OFF"},
+            {"label": "שירותים", "monitor_id": "T_B11B", "action_on": "B11b_WC_ON", "action_off": "B11b_WC_OFF"},
+            {"label": "חימום", "monitor_id": "H_B11B", "action_on": "B11b_H_ON", "action_off": "B11b_H_OFF"}
         ]) }}
     </div>
 
