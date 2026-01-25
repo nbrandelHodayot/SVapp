@@ -41,7 +41,7 @@
         <button type="button" 
             onclick="switchPlcTab('{{ tab_id }}', '{{ context_map[tab_id] }}', '?tab={{ tab_id }}')" 
             class="shabbat-tab-link {{ 'active' if current_tab == tab_id }}">
-            {{ tab_label }}
+                {{ tab_label }}
         </button>
         {% endfor %}
     </div>
@@ -80,11 +80,11 @@
         color: #fff; /* כל הטקסט לבן */
     }
     
-    .shabbat-tabs-nav { 
-        display: flex; 
-        flex-wrap: wrap; 
+    .shabbat-tabs-nav {
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px; 
-        margin-bottom: 25px; 
+        margin-bottom: 25px;
         border-bottom: 2px solid #444; 
         padding-bottom: 15px; 
         background: #252525;
@@ -92,15 +92,15 @@
         border-radius: 8px;
         border: 1px solid #333;
     }
-    
-    .shabbat-tab-link { 
+
+    .shabbat-tab-link {
         background: #2d2d2d; 
         color: #bbb; 
         padding: 12px 20px; 
-        border-radius: 6px; 
-        border: 1px solid #444; 
-        font-weight: bold; 
-        font-size: 0.9rem; 
+        border-radius: 6px;
+        border: 1px solid #444;
+        font-weight: bold;
+        font-size: 0.9rem;
         cursor: pointer; 
         transition: all 0.3s;
         text-transform: uppercase;
@@ -112,14 +112,14 @@
         border-color: #555;
         transform: translateY(-2px);
     }
-    
-    .shabbat-tab-link.active { 
+
+    .shabbat-tab-link.active {
         background: #3d5a80; /* כחול - זהה לבנים */
         color: #fff; 
         border-color: #5a7ba0;
         box-shadow: 0 4px 12px rgba(61, 90, 128, 0.5);
     }
-    
+
     .shabbat-status-header {
         text-align: center;
         color: #fff;
@@ -131,14 +131,14 @@
         font-size: 1.1rem;
         font-weight: bold;
     }
-    
-    .shabbat-timers-grid { 
-        display: flex; 
-        flex-direction: column; 
+
+    .shabbat-timers-grid {
+        display: flex;
+        flex-direction: column;
         gap: 20px; 
         width: 100%;
     }
-    
+
     /* כרטיס שעון */
     .timer-card {
         background: #2d2d2d;
@@ -157,7 +157,7 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(0,0,0,0.9);
     }
-    
+
     .timer-header {
         display: flex;
         flex-direction: column;
@@ -171,13 +171,13 @@
         justify-content: space-between;
         align-items: center;
     }
-    
+
     .timer-label {
         color: #fff;
         font-size: 1.1rem;
         font-weight: bold;
     }
-    
+
     .timer-control-group {
         display: flex;
         align-items: center;
@@ -185,7 +185,7 @@
     }
     
     /* נורות סטטוס - עיצוב תעשייתי */
-    .status-indicator { 
+    .status-indicator {
         width: 18px; 
         height: 18px; 
         border-radius: 50%; 
@@ -203,7 +203,7 @@
         background-color: #ff0000; 
         box-shadow: 0 0 10px #700000; 
     }
-    
+
     .status-indicator.unknown {
         background-color: #808080;
         box-shadow: 0 0 8px #555;
@@ -223,7 +223,7 @@
         min-width: 70px;
         font-family: inherit;
     }
-    
+
     .shabbat-toggle-btn.on {
         background: #004d00;
         color: #90ee90;
@@ -278,7 +278,7 @@
     /* סקציות כרטיס */
     .timer-section {
         display: flex;
-        flex-direction: column;
+            flex-direction: column;
         gap: 8px;
     }
     
@@ -287,7 +287,7 @@
         font-size: 0.95rem;
         font-weight: bold;
         margin-bottom: 5px;
-    }
+        }
     
     .chips-container {
         display: flex;

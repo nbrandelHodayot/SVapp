@@ -404,7 +404,7 @@ def fetch_shabbat_data(area, context_key):
         # 3. פענוח נתוני השעונים (זמנים, ימים ומבנים)
         # העברת area ו-context_key ל-parse_shabbat_clocks
         clocks_list = parse_shabbat_clocks(img, area=area_upper, context_key=context_key)
-        
+
         logger.info(f"Parsed {len(clocks_list)} shabbat clocks for context {context_key}")
 
         # 4. החזרת הנתונים ל-Frontend
@@ -760,15 +760,15 @@ def get_coords_dynamic(action, context_name=None):
             status_points = monitor_config.SHABBAT_STATUS_POINTS_BOYS
         
         if status_points and timer_key in status_points:
-            x, y = status_points[timer_key]
-            # הקונטקסט יהיה לפי ה-context_name שמועבר, או נלקח מהקונטקסט הנוכחי
-            # בדרך כלל זה יהיה BOYS_SHABBAT_AC1, BOYS_SHABBAT_AC2, וכו'
-            return {
-                "x": x,
-                "y": y,
-                # ה-N יקבע לפי ה-context_name שמועבר לפונקציה
-                "n": None  # יקבע לפי context_name
-            }
+                x, y = status_points[timer_key]
+                # הקונטקסט יהיה לפי ה-context_name שמועבר, או נלקח מהקונטקסט הנוכחי
+                # בדרך כלל זה יהיה BOYS_SHABBAT_AC1, BOYS_SHABBAT_AC2, וכו'
+                return {
+                    "x": x,
+                    "y": y,
+                    # ה-N יקבע לפי ה-context_name שמועבר לפונקציה
+                    "n": None  # יקבע לפי context_name
+                }
 
     return None
     
@@ -1207,12 +1207,12 @@ def get_digit_at(img, x_start, y_start):
                 if 0 <= row_idx < digit_h:  # 0-14
                     # בדיקת כל הפיקסלים בשורה (0-9) - גם אלה שלא ברשימה
                     for c in range(digit_w):  # 0-9
-                        x = x_start + c
+                x = x_start + c
                         y = y_start + row_idx
                         
                         # בדיקת גבולות
-                        if 0 <= x < img.width and 0 <= y < img.height:
-                            p = img.getpixel((x, y))
+                if 0 <= x < img.width and 0 <= y < img.height:
+                    p = img.getpixel((x, y))
                             pixel_sum = sum(p)
                             
                             # Threshold: פיקסל בהיר = sum > 600 (להתחשב בשונות RGB)
@@ -1241,7 +1241,7 @@ def get_digit_at(img, x_start, y_start):
                                 if pixel_sum < 200:
                                     # פיקסל אסטרטגי מקבל משקל גבוה יותר
                                     score += 2.0 if is_strategic else 1.0
-                                else:
+                else:
                                     failed_checks += 1
                                     # פיקסל אסטרטגי שנכשל מקבל עונש גבוה יותר
                                     score -= 1.0 if is_strategic else 0.5
@@ -1273,10 +1273,10 @@ def get_digit_at(img, x_start, y_start):
                 # בונוס קטן לספרות 6 ו-9 אם הציון טוב (עוזר להבדיל מ-0)
                 if digit in ['6', '9'] and normalized_score > 0.5:
                     normalized_score += 0.03
-                
+
                 if normalized_score > max_score:
                     max_score = normalized_score
-                    best_digit = digit
+            best_digit = digit
         except Exception as e:
             logger.debug(f"Error sampling strategic pixels for digit {digit} at ({x_start}, {y_start}): {e}")
             continue
@@ -1423,7 +1423,7 @@ def parse_shabbat_clocks(image, area='boys', context_key=None):
                     # תיקון: הוספת ההפרש בין Y של כפתור ל-Y של ספרות (276-266=10)
                     current_offset += 10
                     logger.debug(f"Timer {timer_number} using calculated offset: {current_offset}")
-                except Exception as e:
+        except Exception as e:
                     logger.error(f"Timer {i+1} error calculating offset: {e}")
                     continue
         
@@ -1487,10 +1487,10 @@ def check_heater_buildings(img, offset_y):
             if not isinstance(coords, dict) or "x_range" not in coords:
                 logger.error(f"Invalid coords format for {name}: {coords}")
                 continue
-            target_y = 230 + offset_y 
-            pixel = img.getpixel((coords["x_range"][0], target_y))
-            if is_pixel_active_green(pixel):
-                active.append(name)
+        target_y = 230 + offset_y 
+        pixel = img.getpixel((coords["x_range"][0], target_y))
+        if is_pixel_active_green(pixel):
+            active.append(name)
         except Exception as e:
             logger.debug(f"Error checking heater building {name}: {e}")
             continue
@@ -1635,7 +1635,7 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
             for x in range(x_start, x_end + 1):
                 if 0 <= x < img.width:
                     try:
-                        pixel = img.getpixel((x, days_y))
+                pixel = img.getpixel((x, days_y))
                         r, g, b = pixel
                         
                         # בדיקת ירוק: RGB(0,250,0) עד RGB(0,255,0)
@@ -1649,7 +1649,7 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
             
             # אם רוב הפיקסלים ירוקים - היום נבחר
             if total_checked > 0 and green_count >= total_checked * 0.5:
-                active_days.append(day)
+                    active_days.append(day)
                 logger.debug(f"Day {day} is active: {green_count}/{total_checked} green pixels")
             else:
                 logger.debug(f"Day {day} is not active: {green_count}/{total_checked} green pixels")
@@ -1731,7 +1731,7 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
                                 green_count += 1
                             
                             total_checked += 1
-                        except Exception as e:
+        except Exception as e:
                             logger.debug(f"Error reading pixel at ({x}, {y}) for building {bld_name}: {e}")
                             continue
             
@@ -1770,7 +1770,7 @@ def scan_shabbat_clock(img, offset_y, area='boys', context_key=None):
         return (999, str(bld))
     
     sorted_buildings = sorted(set(active_buildings), key=sort_building_key)
-    
+
     return {
         "start": start_time,
         "stop": stop_time,
